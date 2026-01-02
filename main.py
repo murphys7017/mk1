@@ -1,5 +1,5 @@
 import os
-from Aice import Alice
+from Alice import Alice
 api_key = "sk-eca32ece6ecc4f3ebace6fd5805e7e2c"
 
 if __name__ == "__main__":
