@@ -1,7 +1,7 @@
 
 from MemorySystem.MemoryStore.MemoryStorage import MemoryStorage
 from MessageModel import ChatMessage
-
+from loguru import logger
 
 class MemoryAssembler:
     def __init__(self,strorage: MemoryStorage):
@@ -30,7 +30,7 @@ class MemoryAssembler:
         identity_prompt = self.strorage.getIdentity()
         buffer, dialogues_prompt = self.build_dialogue_prompt(user_input)
 
-
+        logger.info(f"{identity_prompt}, {dialogues_prompt}")
         messages = [{"role": "system", "content": identity_prompt},{"role": "system", "content": dialogues_prompt}]
         for msg in buffer:
             messages.append(msg.buildMessage())

@@ -27,7 +27,8 @@ class IdentitiyMemory:
     def updateSelfAwareness(self, new_awareness: str):
         pass
     def loadSelfAwareness(self) -> str:
-        self.self_awareness = ""
+        with open('Alice_personality.txt', 'r', encoding='utf-8') as f:
+            self.self_awareness = f.read()
 
     def getSelfAwareness(self) -> str:
         return self.self_awareness
