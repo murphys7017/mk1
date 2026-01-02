@@ -4,22 +4,9 @@ import time
 from dataclasses import dataclass
 import json
 
-# ========= 数据结构 =========
-
-@dataclass
-class RawDialogue:
-    role: Literal["user", "assistant"]
-    content: str
-    timestamp: int
-
-
-@dataclass
-class SummaryBlock:
-    summary_text: str
-    created_at: int
-    updated_at: int
-    topic_hint: Optional[str] = None
-    frozen: bool = False
+from LocalModelFunc import LocalModelFunc
+from RawChatHistory import RawChatHistory
+from MessageModel import ChatMessage, DialogueMessage
 
 
 @dataclass
@@ -28,8 +15,6 @@ class SummaryDecision:
     reason: str
     summary_hint: Optional[str] = None
 
-
-# ========= DialogueStorage =========
 
 class DialogueStorage:
     """
@@ -40,47 +25,75 @@ class DialogueStorage:
 
     def __init__(
         self,
+        raw_history: RawChatHistory,
         max_raw_buffer: int = 10,
-        min_raw_for_summary: int = 6,
-        max_summaries: int = 5,
+        min_raw_for_summary: int = 10,
+        history_window: int = 3,
+        
     ):
+        self.raw_history = raw_history
+
         # 尚未被摘要的原始对话
-        self.raw_buffer: List[RawDialogue] = []
+        self.raw_buffer: List[ChatMessage] = []
 
         # 已生成的摘要（按时间顺序）
-        self.summaries: List[SummaryBlock] = []
+        self.history_window = history_window
+
 
         # 策略参数
         self.max_raw_buffer = max_raw_buffer
         self.min_raw_for_summary = min_raw_for_summary
-        self.max_summaries = max_summaries
+
+        self.local_model_func = LocalModelFunc()
 
     # ---------- 基础入口 ----------
 
-    def ingest_dialogue(self, role: str, content: str):
+    def ingestDialogue(self, user_input: ChatMessage):
         """接收一条新的原始对话"""
-        self.raw_buffer.append(
-            RawDialogue(
-                role=role,
-                content=content,
-                timestamp=int(time.time() * 1000),
+        self.raw_history.add_message(user_input)
+        self.raw_buffer.append(user_input)
+
+        temp_action = self.should_consider_summarize(
+            self.raw_history.get_dialogues(1)[0], 
+            self.raw_buffer)
+        
+        if temp_action >= 0:
+            self.apply_summary_decision(temp_action)
+            self.raw_buffer = self.raw_buffer[temp_action-1 :]
+
+        elif temp_action == -2:
+            if len(self.raw_buffer) > self.max_raw_buffer:
+                self.raw_buffer = self.raw_buffer[-self.max_raw_buffer :]
+        
+ 
+        return self.raw_buffer,self.raw_history.get_dialogues(self.history_window)
+
+
+    def should_consider_summarize(self,now_dialogue: DialogueMessage, raw_buffer: List[ChatMessage]) -> int:
+        if len(self.raw_buffer) < self.min_raw_for_summary:
+            return -1
+        else:
+            dialogue_text = now_dialogue.summary if now_dialogue else ""
+            buffer_text = " "
+            i = 1
+            for msg in raw_buffer:
+                buffer_text += f"[{i}] role:{msg.role} content:{msg.content}\n"
+                i += 1
+
+            temp_action = self.decide_summary_action(decision_func=self.local_model_func.judge_dialogue_summary(
+                dialogue_text, buffer_text)
             )
-        )
 
-        # 防止 raw_buffer 无限制增长
-        if len(self.raw_buffer) > self.max_raw_buffer * 2:
-            self.raw_buffer = self.raw_buffer[-self.max_raw_buffer :]
+            if temp_action['need_summary']:
+                buffer_index = self.local_model_func.split_buffer_by_topic_continuation(
+                    dialogue_text,
+                    buffer_text
+                )
+                return buffer_index
+            else:
+                return -2
 
-    # ---------- 规则层 ----------
 
-    def should_consider_summarize(self) -> bool:
-        """
-        只做机械判断：
-        - raw_buffer 是否足够多
-        """
-        return len(self.raw_buffer) >= self.min_raw_for_summary
-
-    # ---------- 决策层（LLM / 本地模型） ----------
 
     def decide_summary_action(
         self,
@@ -98,52 +111,38 @@ class DialogueStorage:
 
     # ---------- 执行层 ----------
 
-    def apply_summary_decision(self, decision: SummaryDecision, generate_summary_func):
+    def apply_summary_decision(self, action: int):
         """
         根据裁决执行摘要操作
-        generate_summary_func: 负责真正生成 summary_text（通常用大模型）
         """
 
-        if decision.action == "SKIP":
-            return
-
-        now = int(time.time() * 1000)
-
-        if decision.action == "APPEND" and self.summaries:
-            current = self.summaries[-1]
-            if current.frozen:
-                return
-
-            new_summary = generate_summary_func(
-                current.summary_text,
-                self.raw_buffer,
-            )
-
-            current.summary_text = new_summary
-            current.updated_at = now
-            current.topic_hint = decision.summary_hint or current.topic_hint
-
-            self.raw_buffer.clear()
-
-        elif decision.action == "NEW":
-            new_summary_text = generate_summary_func(
+        current_message = self.raw_buffer[action-1]
+        if action == 0:
+            new_summary = self.local_model_func.summarize_dialogue(
                 None,
                 self.raw_buffer,
             )
+            currentDialogue = DialogueMessage(start_timestamp=current_message.start_timestamp,
+                                      start_timedate=current_message.start_timedate,
+                                      summary=new_summary)
+            self.raw_history.add_dialogue(currentDialogue)
 
-            new_block = SummaryBlock(
-                summary_text=new_summary_text,
-                created_at=now,
-                updated_at=now,
-                topic_hint=decision.summary_hint,
+        else:
+            new_summary = self.local_model_func.summarize_dialogue(
+                self.raw_history.get_dialogues(1)[0],
+                self.raw_buffer,
             )
 
-            self.summaries.append(new_block)
-            self.raw_buffer.clear()
+            current_ = self.raw_history.get_dialogues(1)[0]
+            current_.summary = new_summary
+            current_.end_timestamp = current_message.start_timestamp
+            current_.end_timedate = current_message.start_timedate
 
-            # 控制 summary 数量
-            if len(self.summaries) > self.max_summaries:
-                self.summaries = self.summaries[-self.max_summaries :]
+
+            self.raw_history.add_dialogue(current_)
+
+
+
 
     # ---------- 对外接口 ----------
 

@@ -1,16 +1,19 @@
 import time
-
-
+from LocalModelFunc import LocalModelFunc
+from MessageModel import ChatMessage
 class PerceptionSystem:
     def __init__(self):
-        pass
-    def text_analysis(self, text: str) -> dict:
-        return {
-            "time_stamp": int(round(time.time() * 1000)),
-            "time_date": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-            "media_type": "text",
-            "analysis_results": text
-        }
+        self.local_llm = LocalModelFunc()
+    def text_analysis(self, text: str) -> ChatMessage:
+        analysis_results = self.local_llm.text_analysis(text)
+        return ChatMessage(
+            role="user",
+            content=text,
+            timestamp=int(round(time.time() * 1000)),
+            timedate=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+            media_type="text",
+            extra=analysis_results
+        )
     
-    def analyze(self, input_data: str) -> dict:
+    def analyze(self, input_data: str) -> ChatMessage:
         return self.text_analysis(input_data)
