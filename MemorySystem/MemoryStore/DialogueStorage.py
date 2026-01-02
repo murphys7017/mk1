@@ -80,9 +80,8 @@ class DialogueStorage:
                 buffer_text += f"[{i}] role:{msg.role} content:{msg.content}\n"
                 i += 1
 
-            temp_action = self.decide_summary_action(decision_func=self.local_model_func.judge_dialogue_summary(
-                dialogue_text, buffer_text)
-            )
+            temp_action = self.local_model_func.judge_dialogue_summary(dialogue_text, buffer_text)
+            
 
             if temp_action['need_summary']:
                 buffer_index = self.local_model_func.split_buffer_by_topic_continuation(
@@ -92,22 +91,6 @@ class DialogueStorage:
                 return buffer_index
             else:
                 return -2
-
-
-
-    def decide_summary_action(
-        self,
-        decision_func,
-    ) -> SummaryDecision:
-        """
-        decision_func 是你注入的“裁判函数”
-        可以是：
-        - 本地小模型
-        - 云端大模型
-        - 规则 mock
-        """
-        current_summary = self.summaries[-1] if self.summaries else None
-        return decision_func(current_summary, self.raw_buffer)
 
     # ---------- 执行层 ----------
 

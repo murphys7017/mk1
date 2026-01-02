@@ -45,7 +45,7 @@ class ChatMessage:
 				"timestamp": self.timestamp,
 				"timedate": self.timedate,
 				"media_type": self.media_type,
-				"extra": json.dumps(self.extra) if self.extra else None
+				"extra": self.extra
 			}, ensure_ascii=False)
 
 @dataclass
@@ -53,7 +53,7 @@ class DialogueMessage:
 	start_timestamp: int
 	start_timedate: str
 	summary: str
-	
+
 	end_timestamp: int = None
 	end_timedate: str = None
 
