@@ -95,69 +95,98 @@ class LocalModelFunc:
         input_text = self.sys_prompt.judge_dialogue_summary_prompt() + input_text
 
         # === 2. 调用 Ollama（示意） ===
-        decision = self._call_ollama_judge(input_text)
+        model = self.sys_prompt.judge_dialogue_summary_model()
+        options = {"temperature": 0, "top_p": 1}
 
-
-        return decision
+        data = self._call_openai_api(input_text, model, options)
+        if data is None:
+            return {"need_summary": False, "action": "none"}
+        else:
+            return data
 
     # ------------------------
     # 内部 Ollama 调用（占位）
     # ------------------------
-    def _call_ollama_judge(self, prompt: str) -> str:
+    def _call_ollama_api(self, prompt: str, model: str, options: dict = None) -> dict:
         """
-        实际实现中：
-        - model: qwen3:1.7b
-        - temperature: 0
-        - top_p: 1
+        通用Ollama本地模型API调用函数。
+        参数：
+            prompt: 输入文本
+            model: 模型名称
+            options: 推理参数字典
+            timeout: 超时时间（秒）
+            stream: 是否流式
+        返回：
+            dict，包含 response/message 字段内容
         """
-
         url = "http://localhost:11434/api/generate"
         payload = {
-            "model": self.sys_prompt.judge_dialogue_summary_model(),
+            "model": model,
             "prompt": prompt,
-            "options": {
-                "temperature": 0,
-                "top_p": 1
-            }
+            "stream": False,
+            "options": options or {}
         }
         try:
-            response = requests.post(url, json=payload, timeout=30)
+            response = requests.post(url, json=payload)
             response.raise_for_status()
+
             data = response.json()
-            # Ollama API 返回内容可能在 'response' 或 'message' 字段
             output = data.get("response") or data.get("message") or ""
+            
             # 尝试提取 JSON
             start = output.find('{')
             end = output.rfind('}')
             if start != -1 and end != -1:
                 output = output[start:end+1]
-            # 验证 JSON
             try:
                 decision = json.loads(output)
-
-                # 强校验
-                if not isinstance(decision.get("need_summary"), bool):
-                    raise ValueError("need_summary invalid")
-
-                if decision.get("action") not in ("append", "new", "none"):
-                    raise ValueError("action invalid")
-
                 return decision
-                
-
             except Exception:
-                return {"need_summary": False, "action": "none"}
-        except Exception:
-            return {"need_summary": False, "action": "none"}
+                return None
+        except Exception as e:
+            print(f"[Ollama API Error] {e}")
+            return None
+
+    def _call_openai_api(self, prompt: str, model: str, options: dict = None) -> dict:
+        """
+        通用OpenAI本地模型API调用函数。
+        参数：
+            prompt: 输入文本
+            model: 模型名称
+            options: 推理参数字典
+            timeout: 超时时间（秒）
+            stream: 是否流式
+        返回：
+            dict，包含 response/message 字段内容
+        """
+        import os
+        from openai import OpenAI
+
+        client = OpenAI(
+            # 若没有配置环境变量，请用百炼API Key将下行替换为：api_key="sk-xxx"
+            api_key="sk-eca32ece6ecc4f3ebace6fd5805e7e2c",
+            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        )
+
+        completion = client.chat.completions.create(
+            # 模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
+            model=model,
+            response_format ="json_object",
+            messages=[
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0,
+            top_p=1,
+        )
+        return completion.choices[0].message.content
+
+
 
 
     """
     本地模型能力集合
     所有 Ollama / 本地模型调用统一从这里走
     """
-
-    # ===== 对话记忆相关 =====
-
     def summarize_dialogue(
         self,
         previous_summary: str,
@@ -185,8 +214,17 @@ class LocalModelFunc:
 请根据以上内容，生成新的长期记忆摘要。
 """
         input_text = self.sys_prompt.summarize_dialogue_prompt() + input_text
-        # === 2. 调用 Ollama ===
-        summary_text = self._call_ollama_summarizer(input_text)
+        # === 2. 调用 OpenAI ===
+        model = self.sys_prompt.summarize_dialogue_model()
+        options = {
+            "temperature": 0.25,
+            "top_p": 0.9,
+            "repeat_penalty": 1.05,
+            "num_predict": 256
+        }
+        data = self._call_openai_api(input_text, model, options)
+        summary_text = (data.get("response") or "").strip()
+    
 
         # === 3. 后处理（非常重要） ===
         summary_text = summary_text.strip()
@@ -200,40 +238,7 @@ class LocalModelFunc:
 
         return summary_text
 
-    # ------------------------
-    # 内部方法（占位）
-    # ------------------------
-    def _call_ollama_summarizer(self, prompt: str) -> str:
-        """
-        使用 Ollama 调用 qwen3-3b-summary
-        """
 
-        url = "http://localhost:11434/api/generate"
-
-        payload = {
-            "model": self.sys_prompt.summarize_dialogue_model(),
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": 0.25,
-                "top_p": 0.9,
-                "repeat_penalty": 1.05,
-                "num_predict": 256
-            }
-        }
-
-        try:
-            response = requests.post(url, json=payload, timeout=60)
-            response.raise_for_status()
-            data = response.json()
-
-            return data.get("response", "").strip()
-
-        except Exception as e:
-            # ⚠️ 兜底：摘要失败时绝不能炸系统
-            print(f"[Ollama Summarizer Error] {e}")
-            return ""
-        
     def _sanitize_summary(self, text: str) -> str:
         """
         简单防护：
