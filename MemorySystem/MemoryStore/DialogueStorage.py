@@ -53,15 +53,15 @@ class DialogueStorage:
         self.raw_history.add_message(user_input)
         self.raw_buffer.append(user_input)
 
-        temp_action = self.should_consider_summarize(
+        splitIndex = self.should_consider_summarize(
             self.raw_history.get_dialogues(1)[0], 
             self.raw_buffer)
         
-        if temp_action >= 0:
-            self.apply_summary_decision(temp_action)
-            self.raw_buffer = self.raw_buffer[temp_action-1 :]
+        if splitIndex >= 0:
+            self.apply_summary_decision(splitIndex)
+            self.raw_buffer = self.raw_buffer[splitIndex-1 :]
 
-        elif temp_action == -2:
+        elif splitIndex == -2:
             if len(self.raw_buffer) > self.max_raw_buffer:
                 self.raw_buffer = self.raw_buffer[-self.max_raw_buffer :]
         
@@ -84,11 +84,11 @@ class DialogueStorage:
             
 
             if temp_action['need_summary']:
-                buffer_index = self.local_model_func.split_buffer_by_topic_continuation(
+                splitIndex = self.local_model_func.split_buffer_by_topic_continuation(
                     dialogue_text,
                     buffer_text
                 )
-                return buffer_index
+                return splitIndex
             else:
                 return -2
 
@@ -124,16 +124,3 @@ class DialogueStorage:
 
             self.raw_history.add_dialogue(current_)
 
-
-
-
-    # ---------- 对外接口 ----------
-
-    def build_context(self):
-        """
-        提供给 MemoryAssembler 的“只读视图”
-        """
-        return {
-            "summaries": self.summaries,
-            "recent_dialogues": self.raw_buffer,
-        }

@@ -1,4 +1,3 @@
-import os
 from Alice import Alice
 api_key = "sk-eca32ece6ecc4f3ebace6fd5805e7e2c"
 
