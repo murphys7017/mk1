@@ -1,3 +1,4 @@
+import json
 from MessageModel import ChatMessage, DialogueMessage
 from pathlib import Path
 from loguru import logger
@@ -5,10 +6,13 @@ from loguru import logger
 class RawChatHistory:
     def __init__(self,
                  max_length: int = 100,
+                 initial_load: bool = True,
+                 initial_load_length: int = 5,
                  auto_save: bool = True,
                  chat_save_path: str = "raw_chat_history.txt",dialogue_save_path: str = "dialogue_history.txt"
                  ):
         self.max_length = max_length
+        self.initial_load_length = initial_load_length
         self.auto_save = auto_save
 
         self.raw_history: list[ChatMessage] = []
@@ -28,6 +32,58 @@ class RawChatHistory:
             logger.info("Dialogue history file created at {}".format(self.dialogue_save_path))
         else:
             logger.info("Dialogue history file exists at {}".format(self.dialogue_save_path))
+        
+        self.load_history()
+        
+    def read_last_n_lines(self,file_path:Path, n):
+        with file_path.open("r", encoding="utf-8") as f:
+            # 移动到文件末尾
+            f.seek(0, 2)
+            file_size = f.tell()
+            lines = []
+            buffer = bytearray()
+            position = file_size
+
+            while position > 0 and len(lines) < n:
+                # 每次读取一个字节（从后往前）
+                position -= 1
+                f.seek(position)
+                byte = f.read(1)
+                if byte == b'\n':
+                    if buffer:  # 遇到换行符且缓冲区非空，说明完成了一行
+                        lines.append(buffer[::-1].decode('utf-8'))
+                        buffer = bytearray()
+                else:
+                    buffer.extend(byte)
+            # 处理文件开头没有换行符的情况（最后一行）
+            if buffer and len(lines) < n:
+                lines.append(buffer[::-1].decode('utf-8'))
+            return lines[::-1]  # 反转以恢复原始顺序
+    
+    def load_history(self):
+
+        for msg in self.read_last_n_lines(self.raw_save_file, self.initial_load_length):
+            data = json.loads(msg.strip())
+            message = ChatMessage(
+                role=data["role"],
+                content=data["content"],
+                timestamp=data["timestamp"],
+                timedate=data["timedate"],
+                media_type=data["media_type"],
+                extra=data.get("extra", None)
+            )
+            self.raw_history.append(message)
+        
+        for dialogue in self.read_last_n_lines(self.dialogue_save_file, self.initial_load_length):
+            data = json.loads(dialogue.strip())
+            dialogue_message = DialogueMessage(
+                start_timestamp=data["start_timestamp"],
+                start_timedate=data["start_timedate"],
+                summary=data["summary"],
+                end_timestamp=data.get("end_timestamp", None),
+                end_timedate=data.get("end_timedate", None)
+            )
+            self.dialogue_history.append(dialogue_message)
 
     def get_history(self) -> list:
         return self.raw_history

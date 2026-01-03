@@ -49,7 +49,15 @@ class DialogueStorage:
     # ---------- 基础入口 ----------
 
     def ingestDialogue(self, user_input: ChatMessage):
-        """接收一条新的原始对话"""
+        """
+        添加新的对话消息，并根据策略决定是否进行摘要，返回当前未摘要的对话和历史摘要列表
+        1. 添加新的对话消息到raw_buffer和raw_history
+        2. 判断是否需要进行摘要
+        3. 如果需要，执行摘要操作
+        返回值：
+        - 当前未摘要的对话列表（raw_buffer）
+        - 历史摘要列表（raw_history）
+        """
         self.raw_history.add_message(user_input)
         self.raw_buffer.append(user_input)
 
@@ -70,6 +78,14 @@ class DialogueStorage:
 
 
     def should_consider_summarize(self,now_dialogue: DialogueMessage, raw_buffer: List[ChatMessage]) -> int:
+        """
+        判断是否需要进行摘要
+        返回值：
+        - >0 整数：需要摘要，返回分割点索引
+        - =0：需要摘要，摘要所有未摘要对话
+        - -1：不需要摘要，原因为对话数量不足
+        - -2：不需要摘要，原因为模型判断不需要摘要
+        """
         if len(self.raw_buffer) < self.min_raw_for_summary:
             return -1
         else:
@@ -97,6 +113,8 @@ class DialogueStorage:
     def apply_summary_decision(self, action: int):
         """
         根据裁决执行摘要操作
+        action: int: 分割点索引
+        0表示新建摘要，>0表示更新现有摘要
         """
 
         current_message = self.raw_buffer[action-1]
