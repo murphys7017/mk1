@@ -1,7 +1,8 @@
 import requests
 import json
-
-from MessageModel import DialogueMessage
+from typing import Any
+from loguru import logger
+from MessageModel import ChatMessage, DialogueMessage
 class SystemPrompt:
     @staticmethod
     def split_buffer_by_topic_continuation_model():
@@ -87,7 +88,7 @@ x必须是一个非负整数，且不能大于新对话轮次的总数。
     
     @staticmethod
     def summarize_dialogue_model():
-        return "qwen3:4b"
+        return "qwen3:1.7b"
     @staticmethod
     def summarize_dialogue_prompt():
         return """
@@ -124,7 +125,8 @@ class LocalModelFunc:
         )
         model = self.sys_prompt.split_buffer_by_topic_continuation_model()
         options = {"temperature": 0, "top_p": 1}
-        data = self._call_openai_api(input_text, model, options)
+        # data = self._call_openai_api(input_text, model, options)
+        data = self._call_ollama_api(input_text, model, options)
         return data.get("index", 0)
 
     def text_analysis(self, text: str) -> dict:
@@ -139,8 +141,8 @@ class LocalModelFunc:
         model = self.sys_prompt.text_analysis_model()
         options = {"temperature": 0, "top_p": 1}
 
-        data = self._call_openai_api(input_text, model, options)
-        if data is None:
+        data = self._call_ollama_api(input_text, model, options)
+        if data is {} or data is None:
             return {
                 "is_question": False,
                 "is_self_reference": False,
@@ -175,7 +177,7 @@ class LocalModelFunc:
         model = self.sys_prompt.judge_dialogue_summary_model()
         options = {"temperature": 0, "top_p": 1}
 
-        data = self._call_openai_api(input_text, model, options)
+        data = self._call_ollama_api(input_text, model, options)
         if data is None:
             return {"need_summary": False}
         else:
@@ -184,7 +186,7 @@ class LocalModelFunc:
     # ------------------------
     # 内部 Ollama 调用（占位）
     # ------------------------
-    def _call_ollama_api(self, prompt: str, model: str, options: dict = None) -> dict:
+    def _call_ollama_api(self, prompt: str, model: str, options: dict[str, Any] | None = None) -> dict:
         """
         通用Ollama本地模型API调用函数。
         参数：
@@ -208,6 +210,7 @@ class LocalModelFunc:
             response.raise_for_status()
 
             data = response.json()
+            logger.debug(f"Ollama API response data: {data}")
             output = data.get("response") or data.get("message") or ""
             
             # 尝试提取 JSON
@@ -219,10 +222,10 @@ class LocalModelFunc:
                 decision = json.loads(output)
                 return decision
             except Exception:
-                return None
+                return {}
         except Exception as e:
             print(f"[Ollama API Error] {e}")
-            return None
+            return {}
 
     def _call_openai_api(self, prompt: str, model: str, options: dict = None) -> dict:
         """
@@ -267,8 +270,8 @@ class LocalModelFunc:
     """
     def summarize_dialogue(
         self,
-        summary: DialogueMessage,
-        dialogues: str
+        summary: DialogueMessage|None,
+        dialogues: list[ChatMessage]
     ) -> str:
         """
         使用 3B 摘要模型（Ollama）
@@ -301,7 +304,7 @@ class LocalModelFunc:
             "num_predict": 256
         }
         data = self._call_openai_api(input_text, model, options)
-        summary_text = (data.get("summary")).strip()
+        summary_text = (data.get("summary", summary.summary if summary else "（无）")).strip()
     
 
         # === 3. 后处理（非常重要） ===
@@ -309,7 +312,7 @@ class LocalModelFunc:
 
         # 兜底：防止模型输出空文本或胡言乱语
         if not summary_text or len(summary_text) < 5:
-            return summary
+            return summary.summary if summary else "（无）"
 
         # 防止模型偷偷变第一人称
         summary_text = self._sanitize_summary(summary_text)

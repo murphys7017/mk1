@@ -2,6 +2,7 @@ import json
 from MessageModel import ChatMessage, DialogueMessage
 from pathlib import Path
 from loguru import logger
+import os
 
 class RawChatHistory:
     def __init__(self,
@@ -35,30 +36,30 @@ class RawChatHistory:
         
         self.load_history()
 
-    def read_last_n_lines(self,file_path:Path, n):
-        with file_path.open("r", encoding="utf-8") as f:
-            # 移动到文件末尾
-            f.seek(0, 2)
+    def read_last_n_lines(self, file_path: Path, n):
+        """
+        高效从后往前读取文件最后n行，适合大文件，文本模式。
+        """
+        with file_path.open("rb") as f:
+            f.seek(0, os.SEEK_END)
             file_size = f.tell()
-            lines = []
             buffer = bytearray()
-            position = file_size
+            lines = []
+            pointer = file_size
 
-            while position > 0 and len(lines) < n:
-                # 每次读取一个字节（从后往前）
-                position -= 1
-                f.seek(position)
+            while pointer > 0 and len(lines) < n:
+                pointer -= 1
+                f.seek(pointer)
                 byte = f.read(1)
                 if byte == b'\n':
-                    if buffer:  # 遇到换行符且缓冲区非空，说明完成了一行
-                        lines.append(buffer[::-1].decode('utf-8'))
+                    if buffer:
+                        lines.append(buffer[::-1].decode('utf-8', errors='ignore'))
                         buffer = bytearray()
                 else:
                     buffer.extend(byte)
-            # 处理文件开头没有换行符的情况（最后一行）
             if buffer and len(lines) < n:
-                lines.append(buffer[::-1].decode('utf-8'))
-            return lines[::-1]  # 反转以恢复原始顺序
+                lines.append(buffer[::-1].decode('utf-8', errors='ignore'))
+            return lines[::-1]
     
     def load_history(self):
 

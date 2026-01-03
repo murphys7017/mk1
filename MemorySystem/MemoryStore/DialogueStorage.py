@@ -26,8 +26,10 @@ class DialogueStorage:
     def __init__(
         self,
         raw_history: RawChatHistory,
-        max_raw_buffer: int = 60,
-        min_raw_for_summary: int = 50,
+        # 最大长度
+        max_raw_buffer: int = 50,
+        # 达到该数量后检查是否需要摘要
+        min_raw_for_summary: int = 10,
         history_window: int = 3,
         
     ):
@@ -65,9 +67,12 @@ class DialogueStorage:
             self.raw_history.get_dialogues(1)[0], 
             self.raw_buffer)
         
-        if splitIndex >= 0:
+        if splitIndex > 0:
             self.apply_summary_decision(splitIndex)
             self.raw_buffer = self.raw_buffer[splitIndex-1 :]
+        elif splitIndex == 0:
+            self.apply_summary_decision(splitIndex)
+            self.raw_buffer = self.raw_buffer[self.min_raw_for_summary :]
 
         elif splitIndex == -2:
             if len(self.raw_buffer) > self.max_raw_buffer:
@@ -123,8 +128,8 @@ class DialogueStorage:
                 None,
                 self.raw_buffer,
             )
-            currentDialogue = DialogueMessage(start_timestamp=current_message.start_timestamp,
-                                      start_timedate=current_message.start_timedate,
+            currentDialogue = DialogueMessage(start_timestamp=current_message.timestamp,
+                                      start_timedate=current_message.timedate,
                                       summary=new_summary)
             self.raw_history.add_dialogue(currentDialogue)
 
@@ -136,8 +141,8 @@ class DialogueStorage:
 
             current_ = self.raw_history.get_dialogues(1)[0]
             current_.summary = new_summary
-            current_.end_timestamp = current_message.start_timestamp
-            current_.end_timedate = current_message.start_timedate
+            current_.end_timestamp = current_message.timestamp
+            current_.end_timedate = current_message.timedate
 
 
             self.raw_history.add_dialogue(current_)

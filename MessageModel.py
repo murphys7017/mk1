@@ -54,8 +54,8 @@ class DialogueMessage:
 	start_timedate: str
 	summary: str
 
-	end_timestamp: int = None
-	end_timedate: str = None
+	end_timestamp: Optional[int] = None
+	end_timedate: Optional[str] = None
 
 	def to_json(self) -> str:
 
