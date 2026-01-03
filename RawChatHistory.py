@@ -7,7 +7,7 @@ class RawChatHistory:
     def __init__(self,
                  max_length: int = 100,
                  initial_load: bool = True,
-                 initial_load_length: int = 5,
+                 initial_load_length: int = 30,
                  auto_save: bool = True,
                  chat_save_path: str = "raw_chat_history.txt",dialogue_save_path: str = "dialogue_history.txt"
                  ):
@@ -34,7 +34,7 @@ class RawChatHistory:
             logger.info("Dialogue history file exists at {}".format(self.dialogue_save_path))
         
         self.load_history()
-        
+
     def read_last_n_lines(self,file_path:Path, n):
         with file_path.open("r", encoding="utf-8") as f:
             # 移动到文件末尾

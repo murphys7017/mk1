@@ -26,8 +26,8 @@ class DialogueStorage:
     def __init__(
         self,
         raw_history: RawChatHistory,
-        max_raw_buffer: int = 10,
-        min_raw_for_summary: int = 10,
+        max_raw_buffer: int = 60,
+        min_raw_for_summary: int = 50,
         history_window: int = 3,
         
     ):
