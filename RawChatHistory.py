@@ -71,7 +71,8 @@ class RawChatHistory:
                 timestamp=data["timestamp"],
                 timedate=data["timedate"],
                 media_type=data["media_type"],
-                extra=data.get("extra", None)
+                extra=data.get("extra", None),
+                chat_turn_id=data.get("chat_turn_id", None)
             )
             self.raw_history.append(message)
         
@@ -88,7 +89,8 @@ class RawChatHistory:
 
     def get_history(self) -> list:
         return self.raw_history
-    
+    def getHistoryLength(self) -> int:
+        return len(self.raw_history)
     def get_dialogues(self, length: int) -> list:
         if length >= len(self.dialogue_history):
             return [None]
@@ -112,6 +114,14 @@ class RawChatHistory:
             f.write(dialogue.to_json() + "\n")
 
     def addMessage(self, message: ChatMessage):
+        if len(self.raw_history) == 0:
+            message.chat_turn_id = 1
+        else:
+            if self.raw_history[-1].chat_turn_id is None:
+                with self.raw_save_file.open("rb") as f:
+                    message.chat_turn_id = len(f.readlines()) + 1
+            else:
+                message.chat_turn_id = self.raw_history[-1].chat_turn_id + 1
         self.raw_history.append(message)
         self.raw_history = self.raw_history[-self.max_length:]
         with self.raw_save_file.open("a", encoding="utf-8") as f:

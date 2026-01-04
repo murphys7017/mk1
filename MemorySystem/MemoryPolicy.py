@@ -3,7 +3,7 @@ from SystemPrompt import SystemPrompt
 from MessageModel import ChatMessage, DialogueMessage
 from loguru import logger
 from LocalModelFunc import LocalModelFunc
-
+from tools import tools
 class MemoryPolicy:
     """Memory policy for managing memory storage and retrieval.
     输入应为 对话的文本形式 话题的文本
@@ -22,6 +22,7 @@ class MemoryPolicy:
             current_summary=current_summary,
             dialogue_turns=dialogue_turns
         )
+        input_text = tools.normalize_block(input_text)
         model = SystemPrompt.split_buffer_by_topic_continuation_model()
         options = {"temperature": 0, "top_p": 1}
         # data = self._call_openai_api(input_text, model, options)
@@ -54,7 +55,7 @@ class MemoryPolicy:
     {dialogues}
     """
             input_text = SystemPrompt.judge_dialogue_summary_prompt() + input_text
-
+            input_text = tools.normalize_block(input_text)
             # === 2. 调用 Ollama（示意） ===
             model = SystemPrompt.judge_dialogue_summary_model()
             options = {"temperature": 0, "top_p": 1}

@@ -50,6 +50,7 @@ class Alice:
         logger.info(f"Perceived input: {aggregated_input}")
 
         self.raw_history.addMessage(aggregated_input)
+        self.memory_system.strorage.checkAndUpdateState()
 
         messages = self.memory_system.buildMessages(aggregated_input)
         

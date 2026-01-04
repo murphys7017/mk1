@@ -21,6 +21,7 @@ class MemoryAssembler:
         self.MEMORY_MID_TAG = "MEMORY_MID" # 已摘要的中期记忆
         self.KNOWLEDGE_TAG = "KNOWLEDGE" # 显式知识 / 世界知识
         self.RESPONSE_PROTOCOL_TAG = "RESPONSE_PROTOCOL" # 回答规范
+        self.CHAT_STATE_TAG = "CHAT_STATE" # 对话状态
 
 
 
@@ -67,6 +68,19 @@ class MemoryAssembler:
         </{self.MEMORY_MID_TAG}>
         """.strip()
     
+    def _build_chat_state(self) -> str:
+        chat_state = self.strorage.getChatState()
+        return f"""
+        <{self.CHAT_STATE_TAG}>
+        - interaction:{chat_state.interaction}
+        - user_attitude:{chat_state.user_attitude}
+        - emotional_state:{chat_state.emotional_state}
+        - leading_approach:{chat_state.leading_approach}
+        - last_message_analysis: {self.raw_history.get_history()[-1].getExtra()}
+        </{self.CHAT_STATE_TAG}>
+        """.strip()
+    
+
     def _build_response_guidelines(self) -> str:
         return f"""
         <{self.RESPONSE_PROTOCOL_TAG}>
@@ -88,37 +102,23 @@ class MemoryAssembler:
 
         messages = []
 
+        system_prompt = f"""
+        {self._build_identity_core()}
+        {self._build_world_setting()}
+        {self._build_long_memory()}
+        {self._build_knowledge()}
+        {self._build_mid_memory(user_input)}
+        {self._build_chat_state()}
+        {self._build_response_guidelines()}
+        """
         messages.append({
             "role": "system",
-            "content": tools.normalize_block(self._build_identity_core())
+            "content": tools.normalize_block(system_prompt)
         })
-
-        messages.append({
-            "role": "system",
-            "content": tools.normalize_block(self._build_world_setting())
-        })
-
-        messages.append({
-            "role": "system",
-            "content": tools.normalize_block(self._build_long_memory())
-        })
-        messages.append({
-            "role": "system",
-            "content": tools.normalize_block(self._build_knowledge())
-        })
-        messages.append({
-            "role": "system",
-            "content": tools.normalize_block(self._build_mid_memory(user_input))
-        })
-        messages.append({
-            "role": "system",
-            "content": tools.normalize_block(self._build_response_guidelines())
-        })
-
 
         # 原始对话放最后
         buffer = self.raw_history.get_history()[self.history_window * -1:]
         for msg in buffer:
             messages.append(msg.buildMessage())
-
+        
         return messages

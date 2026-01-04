@@ -11,9 +11,8 @@ from MessageModel import ChatMessage, DialogueMessage
 from MemorySystem.MemoryPolicy import MemoryPolicy
 
 from loguru import logger
-
 from SystemPrompt import SystemPrompt
-
+from tools import tools
 @dataclass
 class SummaryDecision:
     action: Literal["APPEND", "NEW", "SKIP"]
@@ -36,7 +35,7 @@ class DialogueStorage:
         # 最大长度
         max_raw_buffer: int = 50,
         # 达到该数量后检查是否需要摘要
-        min_raw_for_summary: int = 10,
+        min_raw_for_summary: int = 4,
         history_window: int = 3,
         
     ):
@@ -77,14 +76,17 @@ class DialogueStorage:
         
         if splitIndex > 0:
             self.apply_summary_decision(splitIndex)
-            self.raw_buffer = self.raw_buffer[splitIndex-1 :]
+            self.raw_buffer = self.raw_buffer[splitIndex:]
+            logger.debug(f"splitIndex {splitIndex},摘要后，剩余未摘要对话数量：{len(self.raw_buffer)}")
         elif splitIndex == 0:
             self.apply_summary_decision(splitIndex)
             self.raw_buffer = self.raw_buffer[self.min_raw_for_summary :]
+            logger.debug(f"splitIndex {splitIndex},摘要后，剩余未摘要对话数量：{len(self.raw_buffer)}")
 
         elif splitIndex == -2:
             if len(self.raw_buffer) > self.max_raw_buffer:
                 self.raw_buffer = self.raw_buffer[-self.max_raw_buffer :]
+            logger.debug(f"splitIndex {splitIndex},摘要后，剩余未摘要对话数量：{len(self.raw_buffer)}")
         
  
         return self.raw_history.get_dialogues(self.history_window)
@@ -105,7 +107,7 @@ class DialogueStorage:
             logger.debug(f"当前未摘要对话数量：{len(self.raw_buffer)}，开始评估摘要需求...")
             dialogue_text = now_dialogue.summary if now_dialogue else ""
             buffer_text = " "
-            i = 1
+            i = 0
             for msg in raw_buffer:
                 buffer_text += f"[{i}] role:{msg.role} content:{msg.content}\n"
                 i += 1
@@ -148,9 +150,18 @@ class DialogueStorage:
             )
 
             current_ = self.raw_history.get_dialogues(1)[0]
-            current_.summary = new_summary
-            current_.end_timestamp = current_message.timestamp
-            current_.end_timedate = current_message.timedate
+            if current_ is None:
+                current_ = DialogueMessage(
+                    start_timedate=self.raw_buffer[0].timedate,
+                    start_timestamp=self.raw_buffer[0].timestamp,
+                    end_timestamp=current_message.timestamp,
+                    end_timedate=current_message.timedate,
+                    summary=new_summary
+            )
+            else:
+                current_.summary = new_summary
+                current_.end_timestamp = current_message.timestamp
+                current_.end_timedate = current_message.timedate
 
 
             self.raw_history.add_dialogue(current_)
@@ -170,18 +181,23 @@ class DialogueStorage:
                 dialogues_text += f"[{i}] role:{msg.role} content:{msg.content}\n"
                 i += 1
 
-        input_text = f"""
-【已有摘要】
-{summary.summary if summary else "（无）"}
+        input_text = """
+                    【已有摘要】
+                    {summary}
 
-【未摘要对话】
-{dialogues_text}
+                    【未摘要对话】
+                    {dialogues_text}
 
-请根据以上内容，生成新的长期记忆摘要。
-返回要求：
-{"summary": "文本内容"}
-"""
+                    请根据以上内容，生成新的长期记忆摘要。
+                    返回要求：
+                    {{"summary": "文本内容"}}
+                    """
+        input_text = input_text.format(
+                        summary=summary.summary if summary else "（无）",
+                        dialogues_text=dialogues_text
+                    )
         input_text = SystemPrompt.summarize_dialogue_prompt() + input_text
+        input_text = tools.normalize_block(input_text)
         # === 2. 调用 OpenAI ===
         model = SystemPrompt.summarize_dialogue_model()
         options = {
@@ -190,7 +206,7 @@ class DialogueStorage:
             "repeat_penalty": 1.05,
             "num_predict": 256
         }
-        data = self.local_model_func._call_openai_api(input_text, model, options)
+        data = self.local_model_func._call_ollama_api(input_text, model, options)
         summary_text = (data.get("summary", summary.summary if summary else "（无）")).strip()
     
 

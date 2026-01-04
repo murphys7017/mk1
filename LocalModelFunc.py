@@ -34,12 +34,14 @@ class LocalModelFunc:
 
             data = response.json()
             output = data.get("response") or data.get("message") or ""
+            logger.debug(f"Ollama API Raw Output: {output}")
             
             # 尝试提取 JSON
             start = output.find('{')
             end = output.rfind('}')
             if start != -1 and end != -1:
                 output = output[start:end+1]
+                logger.debug(f"Ollama API Extracted JSON: {output}")
             try:
                 decision = json.loads(output)
                 return decision
