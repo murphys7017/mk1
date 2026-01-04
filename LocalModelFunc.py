@@ -49,7 +49,7 @@ class LocalModelFunc:
             print(f"[Ollama API Error] {e}")
             return {}
 
-    def _call_openai_api(self, prompt: str, model: str, options: dict = None) -> dict:
+    def _call_openai_api(self, prompt: str, model: str, options: dict | None = None) -> dict:
         """
         通用OpenAI本地模型API调用函数。
         参数：
@@ -80,5 +80,5 @@ class LocalModelFunc:
             temperature=0,
             top_p=1,
         )
-        res = json.loads(completion.choices[0].message.content)
+        res = json.loads(completion.choices[0].message.content) # type: ignore
         return res
