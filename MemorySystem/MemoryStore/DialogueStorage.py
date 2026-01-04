@@ -12,6 +12,8 @@ from MemorySystem.MemoryPolicy import MemoryPolicy
 
 from loguru import logger
 
+from SystemPrompt import SystemPrompt
+
 @dataclass
 class SummaryDecision:
     action: Literal["APPEND", "NEW", "SKIP"]
@@ -67,7 +69,6 @@ class DialogueStorage:
         - 当前未摘要的对话列表（raw_buffer）
         - 历史摘要列表（raw_history）
         """
-        self.raw_history.add_message(user_input)
         self.raw_buffer.append(user_input)
 
         splitIndex = self.should_consider_summarize(
@@ -101,6 +102,7 @@ class DialogueStorage:
         if len(self.raw_buffer) < self.min_raw_for_summary:
             return -1
         else:
+            logger.debug(f"当前未摘要对话数量：{len(self.raw_buffer)}，开始评估摘要需求...")
             dialogue_text = now_dialogue.summary if now_dialogue else ""
             buffer_text = " "
             i = 1
@@ -109,8 +111,7 @@ class DialogueStorage:
                 i += 1
 
             temp_action = self.policy.judgeDialogueSummary(dialogue_text, buffer_text)
-            
-
+            logger.info(f"摘要决策：{temp_action}")
             if temp_action['need_summary']:
                 splitIndex = self.policy.splitBufferByTopic(
                     dialogue_text,
@@ -131,7 +132,7 @@ class DialogueStorage:
 
         current_message = self.raw_buffer[action-1]
         if action == 0:
-            new_summary = self.local_model_func.summarize_dialogue(
+            new_summary = self.summarize_dialogue(
                 None,
                 self.raw_buffer,
             )
@@ -141,7 +142,7 @@ class DialogueStorage:
             self.raw_history.add_dialogue(currentDialogue)
 
         else:
-            new_summary = self.local_model_func.summarize_dialogue(
+            new_summary = self.summarize_dialogue(
                 self.raw_history.get_dialogues(1)[0],
                 self.raw_buffer,
             )
@@ -154,3 +155,67 @@ class DialogueStorage:
 
             self.raw_history.add_dialogue(current_)
 
+    def summarize_dialogue(
+        self,
+        summary: DialogueMessage|None,
+        dialogues: list[ChatMessage]
+    ) -> str:
+        """
+        使用 3B 摘要模型（Ollama）
+        返回长期记忆友好的摘要文本
+        """
+        dialogues_text = " "
+        i = 1
+        for msg in dialogues:
+                dialogues_text += f"[{i}] role:{msg.role} content:{msg.content}\n"
+                i += 1
+
+        input_text = f"""
+【已有摘要】
+{summary.summary if summary else "（无）"}
+
+【未摘要对话】
+{dialogues_text}
+
+请根据以上内容，生成新的长期记忆摘要。
+返回要求：
+{"summary": "文本内容"}
+"""
+        input_text = SystemPrompt.summarize_dialogue_prompt() + input_text
+        # === 2. 调用 OpenAI ===
+        model = SystemPrompt.summarize_dialogue_model()
+        options = {
+            "temperature": 0.25,
+            "top_p": 0.9,
+            "repeat_penalty": 1.05,
+            "num_predict": 256
+        }
+        data = self.local_model_func._call_openai_api(input_text, model, options)
+        summary_text = (data.get("summary", summary.summary if summary else "（无）")).strip()
+    
+
+        # === 3. 后处理（非常重要） ===
+        summary_text = summary_text.strip()
+
+        # 兜底：防止模型输出空文本或胡言乱语
+        if not summary_text or len(summary_text) < 5:
+            return summary.summary if summary else "（无）"
+
+        # 防止模型偷偷变第一人称
+        summary_text = self._sanitize_summary(summary_text)
+
+        return summary_text
+
+
+    def _sanitize_summary(self, text: str) -> str:
+        """
+        简单防护：
+        - 移除第一人称
+        - 移除明显情绪化语句
+        """
+
+        forbidden = ["我认为", "我觉得", "我感到", "我正在"]
+        for word in forbidden:
+            text = text.replace(word, "")
+
+        return text

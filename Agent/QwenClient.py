@@ -1,3 +1,6 @@
+from openai import OpenAI
+
+
 class QwenClient:
     def __init__(self, api_key: str):
         self.model = "qwen-plus"
@@ -23,11 +26,5 @@ class QwenClient:
         )
 
         response = completion.choices[0].message.content
-        self.raw_history.add_message(ChatMessage(
-            role="assistant", content=response,
-            timestamp=int(round(time.time() * 1000)),
-            timedate=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-            media_type="text",
-            ))
 
         return response

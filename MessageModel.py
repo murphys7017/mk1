@@ -2,7 +2,7 @@ from typing import Optional, Literal
 import time
 from dataclasses import dataclass
 import json
-
+from tools import tools
 @dataclass
 class ChatMessage:
 	"""
@@ -18,19 +18,37 @@ class ChatMessage:
 	timedate: str
 	media_type:Literal["text","image","audio","video"]
 	extra: Optional[dict] = None
-	
+
+	CHAT_TAG = "CHAT_MESSAGE"
+	RAW_TEXT_TAG = "RAW_TEXT"
+	IS_QUESTION_TAG = "IS_QUESTION"
+	IS_SELF_REFERENCE_TAG = "IS_SELF_REFERENCE"
+	MENTIONED_ENTITIES_TAG = "MENTIONED_ENTITIES"
+	EMOTIONAL_CUES_TAG = "EMOTIONAL_CUES"
 	def buildContent(self):
 		if self.media_type=="text":
 			content = f"""
-				原始文本: {self.content}
-				是否是问题：{self.extra.get("is_question", False) if self.extra else False}
-				是否自我引用：{self.extra.get("is_self_reference", False) if self.extra else False}
-				提及的实体：{', '.join(self.extra.get("mentioned_entities", []) ) if self.extra else ''}
-				情感线索：{', '.join(self.extra.get("emotional_cues", []) ) if self.extra else ''}
+				<{self.CHAT_TAG}>
+				<{self.RAW_TEXT_TAG}>
+					{self.content}
+				</{self.RAW_TEXT_TAG}>
+				<{self.IS_QUESTION_TAG}>
+					{self.extra.get("is_question", False) if self.extra else False}
+				</{self.IS_QUESTION_TAG}>
+				<{self.IS_SELF_REFERENCE_TAG}>
+					{self.extra.get("is_self_reference", False) if self.extra else False}
+				</{self.IS_SELF_REFERENCE_TAG}>
+				<{self.MENTIONED_ENTITIES_TAG}>
+					{', '.join(self.extra.get("mentioned_entities", []) ) if self.extra else ''}
+				</{self.MENTIONED_ENTITIES_TAG}>
+				<{self.EMOTIONAL_CUES_TAG}>
+					{', '.join(self.extra.get("emotional_cues", []) ) if self.extra else ''}
+				</{self.EMOTIONAL_CUES_TAG}>
+				</{self.CHAT_TAG}>
 			"""
-			return content
+			return tools.normalize_block(content)
 		else:
-			return self.content
+			return tools.normalize_block(self.content)
 	
 	def buildMessage(self):
 		return {

@@ -40,11 +40,17 @@ class Alice:
         """
         processd_inputs = []
         for user_input in user_inputs:
-            processd_inputs.append(
-                self.perception_system.analyze(user_input)
-            )
+            res = self.perception_system.analyze(user_input)
+            if res:
+                processd_inputs.append(res)
+        if len(processd_inputs) == 0:
+            logger.warning("No valid input perceived.")
+            return None
         aggregated_input = self.aggregated_input(processd_inputs)
         logger.info(f"Perceived input: {aggregated_input}")
+
+        self.raw_history.addMessage(aggregated_input)
+
         messages = self.memory_system.buildMessages(aggregated_input)
         
         return messages
@@ -54,7 +60,17 @@ class Alice:
         生成对用户输入的响应
         """
         messages = self.process_input(user_inputs)
-        response = self.client.respond(messages)
-        logger.info(f"Alice response: {response}")
+        logger.debug(f"Built messages for response: {messages}")
+        if messages is None:
+            return "抱歉，我无法理解您的输入。"
+        else:
+            response = self.client.respond(messages)
+            logger.info(f"Alice response: {response}")
+            self.raw_history.addMessage(ChatMessage(
+                role="assistant", content=response,
+                timestamp=int(round(time.time() * 1000)),
+                timedate=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+                media_type="text",
+                ))
         return response
     

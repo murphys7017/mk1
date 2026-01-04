@@ -13,5 +13,5 @@ if __name__ == "__main__":
         if user_input.lower() == "退出":
             print("再见！")
             break
-        response = alice.respond([user_input])
+        response = alice.respond([{"media_type": "text", "content": user_input}])
         print("爱丽丝: " + response)

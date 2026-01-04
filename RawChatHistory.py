@@ -111,7 +111,7 @@ class RawChatHistory:
         with self.dialogue_save_file.open("a", encoding="utf-8") as f:
             f.write(dialogue.to_json() + "\n")
 
-    def add_message(self, message: ChatMessage):
+    def addMessage(self, message: ChatMessage):
         self.raw_history.append(message)
         self.raw_history = self.raw_history[-self.max_length:]
         with self.raw_save_file.open("a", encoding="utf-8") as f:
