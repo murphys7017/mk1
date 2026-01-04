@@ -27,3 +27,7 @@
 {"role": "assistant", "content": "哼，等你写好代码我倒要看看有没有bug，别又写出一堆乱七八糟的东西来。\n\n话说回来……可乐还没喝完呢，别让我等太久。", "timestamp": 1767440118677, "timedate": "2026-01-03 19:35:18", "media_type": "text", "extra": null}
 {"role": "user", "content": "没事，你可以再开一瓶", "timestamp": 1767440988957, "timedate": "2026-01-03 19:49:48", "media_type": "text", "extra": {"is_question": false, "is_self_reference": false, "mentioned_entities": ["开瓶", "一瓶"], "emotional_cues": []}}
 {"role": "assistant", "content": "哼，笨蛋，谁要你开可乐给我喝啊！  \n……不过既然开了，我就不客气了。", "timestamp": 1767440990480, "timedate": "2026-01-03 19:49:50", "media_type": "text", "extra": null}
+{"role": "user", "content": "我又回来啦！", "timestamp": 1767442576483, "timedate": "2026-01-03 20:16:16", "media_type": "text", "extra": {"is_question": false, "is_self_reference": false, "mentioned_entities": ["回来", "我"], "emotional_cues": []}}
+{"role": "assistant", "content": "哼，这才多久没见就开始念叨着回来……笨蛋。  \n可乐我还没喝完，你倒挺准时的嘛。", "timestamp": 1767442579528, "timedate": "2026-01-03 20:16:19", "media_type": "text", "extra": null}
+{"role": "user", "content": "我来啦", "timestamp": 1767443393977, "timedate": "2026-01-03 20:29:53", "media_type": "text", "extra": {"is_question": false, "is_self_reference": false, "mentioned_entities": ["我"], "emotional_cues": []}}
+{"role": "assistant", "content": "哼，总算来了啊，笨蛋。  \n我还以为你被黑洞吸走了呢。", "timestamp": 1767443395793, "timedate": "2026-01-03 20:29:55", "media_type": "text", "extra": null}
