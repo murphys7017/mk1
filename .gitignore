@@ -8,3 +8,5 @@ wheels/
 
 # Virtual environments
 .venv
+raw_chat_history.txt
+dialogue_history.txt
