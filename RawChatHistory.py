@@ -88,6 +88,7 @@ class RawChatHistory:
 
     def get_history(self) -> list:
         return self.raw_history
+    
     def get_dialogues(self, length: int) -> list:
         if length >= len(self.dialogue_history):
             return [None]

@@ -5,9 +5,12 @@ from dataclasses import dataclass
 import json
 
 from LocalModelFunc import LocalModelFunc
+from MemorySystem import MemoryPolicy
 from RawChatHistory import RawChatHistory
 from MessageModel import ChatMessage, DialogueMessage
+from MemorySystem.MemoryPolicy import MemoryPolicy
 
+from loguru import logger
 
 @dataclass
 class SummaryDecision:
@@ -26,6 +29,8 @@ class DialogueStorage:
     def __init__(
         self,
         raw_history: RawChatHistory,
+        local_model_func: LocalModelFunc,
+        policy: MemoryPolicy,
         # 最大长度
         max_raw_buffer: int = 50,
         # 达到该数量后检查是否需要摘要
@@ -46,11 +51,13 @@ class DialogueStorage:
         self.max_raw_buffer = max_raw_buffer
         self.min_raw_for_summary = min_raw_for_summary
 
-        self.local_model_func = LocalModelFunc()
+        self.local_model_func = local_model_func
+
+        self.policy = policy
 
     # ---------- 基础入口 ----------
 
-    def ingestDialogue(self, user_input: ChatMessage):
+    def ingestDialogue(self, user_input: ChatMessage) -> List[DialogueMessage]:
         """
         添加新的对话消息，并根据策略决定是否进行摘要，返回当前未摘要的对话和历史摘要列表
         1. 添加新的对话消息到raw_buffer和raw_history
@@ -79,7 +86,7 @@ class DialogueStorage:
                 self.raw_buffer = self.raw_buffer[-self.max_raw_buffer :]
         
  
-        return self.raw_buffer,self.raw_history.get_dialogues(self.history_window)
+        return self.raw_history.get_dialogues(self.history_window)
 
 
     def should_consider_summarize(self,now_dialogue: DialogueMessage, raw_buffer: List[ChatMessage]) -> int:
@@ -101,11 +108,11 @@ class DialogueStorage:
                 buffer_text += f"[{i}] role:{msg.role} content:{msg.content}\n"
                 i += 1
 
-            temp_action = self.local_model_func.judge_dialogue_summary(dialogue_text, buffer_text)
+            temp_action = self.policy.judgeDialogueSummary(dialogue_text, buffer_text)
             
 
             if temp_action['need_summary']:
-                splitIndex = self.local_model_func.split_buffer_by_topic_continuation(
+                splitIndex = self.policy.splitBufferByTopic(
                     dialogue_text,
                     buffer_text
                 )

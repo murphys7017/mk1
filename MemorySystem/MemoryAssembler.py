@@ -3,12 +3,19 @@ from MemorySystem.MemoryStore.MemoryStorage import MemoryStorage
 from MessageModel import ChatMessage
 from loguru import logger
 
-class MemoryAssembler:
-    def __init__(self,strorage: MemoryStorage):
-        self.strorage = strorage
+from RawChatHistory import RawChatHistory
 
+class MemoryAssembler:
+    def __init__(self,
+                 strorage: MemoryStorage,
+                 raw_history: RawChatHistory,
+                 history_window: int = 20,
+                 ):
+        self.history_window = history_window
+        self.strorage = strorage
+        self.raw_history = raw_history
     def build_dialogue_prompt(self,user_input) -> str:
-        buffer,dialogues = self.strorage.getDialogue(user_input)
+        dialogues = self.strorage.getDialogue(user_input)
         summary = ""
         i= 1
         for msg in dialogues:
@@ -19,16 +26,17 @@ class MemoryAssembler:
         dialogues_prompt = f"""
 下面是目前的短期对话摘要：
 {summary if summary != "" else "（无）"}
-
+请基于以上内容，结合用户的对话输入，进行回复。
 
 """
-        return buffer,dialogues_prompt
+        return dialogues_prompt
 
 
-    def assemble(self, user_input: ChatMessage) -> str:
+    def assemble(self, user_input: ChatMessage) -> list[dict]:
 
         identity_prompt = self.strorage.getIdentity()
-        buffer, dialogues_prompt = self.build_dialogue_prompt(user_input)
+        buffer = self.raw_history.get_history()[self.history_window *-1 :]
+        dialogues_prompt = self.build_dialogue_prompt(user_input)
 
         messages = [{"role": "system", "content": identity_prompt},{"role": "system", "content": dialogues_prompt}]
         for msg in buffer:

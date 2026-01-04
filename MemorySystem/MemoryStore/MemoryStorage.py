@@ -1,19 +1,22 @@
 
+from LocalModelFunc import LocalModelFunc
+from MemorySystem import MemoryPolicy
 from RawChatHistory import RawChatHistory
 from MemorySystem.MemoryStore.DialogueStorage import DialogueStorage
 from MemorySystem.MemoryStore.IdentitiyMemory import IdentitiyMemory
-from MessageModel import ChatMessage
+from MemorySystem.MemoryPolicy import MemoryPolicy
+from MessageModel import ChatMessage, DialogueMessage
 
 
 class MemoryStorage:
-    def __init__(self,raw_history: RawChatHistory):
+    def __init__(self,raw_history: RawChatHistory, local_model_func: LocalModelFunc, policy: MemoryPolicy):
         self.raw_history = raw_history
         self.identity_memory = IdentitiyMemory()
-        self.dialogue_storage = DialogueStorage(raw_history)
+        self.dialogue_storage = DialogueStorage(raw_history, local_model_func, policy)
         
 
     def getIdentity(self) -> str:
         return self.identity_memory.getIdentity()
     
-    def getDialogue(self, user_input: ChatMessage) -> list:
+    def getDialogue(self, user_input: ChatMessage) -> list[DialogueMessage]:
         return self.dialogue_storage.ingestDialogue(user_input)

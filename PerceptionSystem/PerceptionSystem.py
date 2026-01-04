@@ -1,4 +1,5 @@
 import time
+from typing import Any
 from LocalModelFunc import LocalModelFunc
 from MessageModel import ChatMessage
 class PerceptionSystem:
@@ -15,5 +16,5 @@ class PerceptionSystem:
             extra=analysis_results
         )
     
-    def analyze(self, input_data: str) -> ChatMessage:
+    def analyze(self, input_data: Any) -> ChatMessage:
         return self.text_analysis(input_data)

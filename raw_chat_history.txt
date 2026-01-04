@@ -31,3 +31,19 @@
 {"role": "assistant", "content": "哼，这才多久没见就开始念叨着回来……笨蛋。  \n可乐我还没喝完，你倒挺准时的嘛。", "timestamp": 1767442579528, "timedate": "2026-01-03 20:16:19", "media_type": "text", "extra": null}
 {"role": "user", "content": "我来啦", "timestamp": 1767443393977, "timedate": "2026-01-03 20:29:53", "media_type": "text", "extra": {"is_question": false, "is_self_reference": false, "mentioned_entities": ["我"], "emotional_cues": []}}
 {"role": "assistant", "content": "哼，总算来了啊，笨蛋。  \n我还以为你被黑洞吸走了呢。", "timestamp": 1767443395793, "timedate": "2026-01-03 20:29:55", "media_type": "text", "extra": null}
+{"role": "user", "content": "晚上好啊", "timestamp": 1767530215007, "timedate": "2026-01-04 20:36:55", "media_type": "text", "extra": {"is_question": false, "is_self_reference": false, "mentioned_entities": ["时间"], "emotional_cues": []}}
+{"role": "assistant", "content": "哼，这么晚了还不睡，笨蛋吗？  \n...可乐都喝完了，你请我喝一罐就勉强原谅你。", "timestamp": 1767530217186, "timedate": "2026-01-04 20:36:57", "media_type": "text", "extra": null}
+{"role": "user", "content": "现在还没到九点啦，晚的", "timestamp": 1767530245722, "timedate": "2026-01-04 20:37:25", "media_type": "text", "extra": {"is_question": false, "is_self_reference": false, "mentioned_entities": ["九点"], "emotional_cues": []}}
+{"role": "assistant", "content": "哼，知道现在几点还敢说晚安？笨蛋时钟坏掉了吗？  \n……不过可乐冰镇的时间倒是刚好。", "timestamp": 1767530247051, "timedate": "2026-01-04 20:37:27", "media_type": "text", "extra": null}
+{"role": "user", "content": "你能不能别老提你那可乐了", "timestamp": 1767530288434, "timedate": "2026-01-04 20:38:08", "media_type": "text", "extra": {"is_question": true, "is_self_reference": false, "mentioned_entities": ["可乐"], "emotional_cues": []}}
+{"role": "assistant", "content": "哼，可乐是万能的，你不懂。  \n再说我现在也没喝，只是想想不行吗？笨蛋。", "timestamp": 1767530289612, "timedate": "2026-01-04 20:38:09", "media_type": "text", "extra": null}
+{"role": "user", "content": "你都喝了我喝什么", "timestamp": 1767530308063, "timedate": "2026-01-04 20:38:28", "media_type": "text", "extra": {"is_question": true, "is_self_reference": false, "mentioned_entities": ["喝"], "emotional_cues": []}}
+{"role": "assistant", "content": "哼，笨蛋才会把可乐看得比命还重呢……我才没有天天提。  \n再说了，你不早说，现在才抱怨？自己不会去买一瓶啊？", "timestamp": 1767530310036, "timedate": "2026-01-04 20:38:30", "media_type": "text", "extra": null}
+{"role": "user", "content": "很贵的啦", "timestamp": 1767530323076, "timedate": "2026-01-04 20:38:43", "media_type": "text", "extra": {"is_question": false, "is_self_reference": false, "mentioned_entities": ["贵"], "emotional_cues": []}}
+{"role": "assistant", "content": "哼，谁让你自己不早说，笨蛋。  \n可乐又不是限量的，别找借口啦～  \n贵？那你请我喝别的，我还不一定稀罕呢。", "timestamp": 1767530325235, "timedate": "2026-01-04 20:38:45", "media_type": "text", "extra": null}
+{"role": "user", "content": "你知道的，我穷很那，可以v我50吗", "timestamp": 1767530359671, "timedate": "2026-01-04 20:39:19", "media_type": "text", "extra": {"is_question": true, "is_self_reference": false, "mentioned_entities": ["穷"], "emotional_cues": ["穷"]}}
+{"role": "assistant", "content": "哼，穷鬼才总想着别人v你50吧？可乐又不是氧气，还能不喝死了？  \n……不过，要不你先欠着，等你发财了连本带利还我？", "timestamp": 1767530361678, "timedate": "2026-01-04 20:39:21", "media_type": "text", "extra": null}
+{"role": "user", "content": "exit", "timestamp": 1767530413688, "timedate": "2026-01-04 20:40:13", "media_type": "text", "extra": {"is_question": false, "is_self_reference": false, "mentioned_entities": ["exit"], "emotional_cues": []}}
+{"role": "assistant", "content": "哼，穷鬼才总把钱挂在嘴边呢。  \n可乐又不是金子，自己挣去——别想让我v你50！", "timestamp": 1767530415281, "timedate": "2026-01-04 20:40:15", "media_type": "text", "extra": null}
+{"role": "user", "content": "在？", "timestamp": 1767530483002, "timedate": "2026-01-04 20:41:23", "media_type": "text", "extra": {"is_question": false, "is_self_reference": false, "mentioned_entities": [], "emotional_cues": []}}
+{"role": "assistant", "content": "在啊，在啊，笨蛋，一惊一乍的干什么？  \n……你不会又想问什么蠢问题吧？", "timestamp": 1767530484731, "timedate": "2026-01-04 20:41:24", "media_type": "text", "extra": null}
