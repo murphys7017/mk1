@@ -76,7 +76,7 @@ class MemoryAssembler:
         - user_attitude:{chat_state.user_attitude}
         - emotional_state:{chat_state.emotional_state}
         - leading_approach:{chat_state.leading_approach}
-        - last_message_analysis: {self.raw_history.get_history()[-1].getExtra()}
+        - last_message_analysis: {self.raw_history.getHistory()[-1].getExtra()}
         </{self.CHAT_STATE_TAG}>
         """.strip()
     
@@ -113,11 +113,11 @@ class MemoryAssembler:
         """
         messages.append({
             "role": "system",
-            "content": tools.normalize_block(system_prompt)
+            "content": tools.normalizeBlock(system_prompt)
         })
 
         # 原始对话放最后
-        buffer = self.raw_history.get_history()[self.history_window * -1:]
+        buffer = self.raw_history.getHistory()[self.history_window * -1:]
         for msg in buffer:
             messages.append(msg.buildMessage())
         

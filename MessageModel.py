@@ -48,9 +48,9 @@ class ChatMessage:
 				</{self.EMOTIONAL_CUES_TAG}>
 				</{self.CHAT_TAG}>
 			"""
-			return tools.normalize_block(content)
+			return tools.normalizeBlock(content)
 		else:
-			return tools.normalize_block(self.content)
+			return tools.normalizeBlock(self.content)
 	
 	def getExtra(self):
 		return self.extra if self.extra else {}
@@ -58,9 +58,9 @@ class ChatMessage:
 	def buildContent(self):
 		if self.media_type=="text":
 			content = self.content
-			return tools.normalize_block(content)
+			return tools.normalizeBlock(content)
 		else:
-			return tools.normalize_block(self.content)
+			return tools.normalizeBlock(self.content)
 	
 	def buildMessage(self):
 		return {

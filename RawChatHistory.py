@@ -87,11 +87,11 @@ class RawChatHistory:
             )
             self.dialogue_history.append(dialogue_message)
 
-    def get_history(self) -> list:
+    def getHistory(self) -> list:
         return self.raw_history
     def getHistoryLength(self) -> int:
         return len(self.raw_history)
-    def get_dialogues(self, length: int) -> list:
+    def getDialogues(self, length: int) -> list:
         if length >= len(self.dialogue_history):
             return [None]
         if length > 1:
@@ -107,7 +107,7 @@ class RawChatHistory:
         else:
             return self.dialogue_history[-length:]
     
-    def add_dialogue(self, dialogue: DialogueMessage):
+    def addDialogues(self, dialogue: DialogueMessage):
         self.dialogue_history.append(dialogue)
         self.dialogue_history = self.dialogue_history[-self.max_length:]
         with self.dialogue_save_file.open("a", encoding="utf-8") as f:

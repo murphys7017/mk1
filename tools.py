@@ -3,7 +3,7 @@ import re
 
 class tools:
     @staticmethod
-    def normalize_block(text: str) -> str:
+    def normalizeBlock(text: str) -> str:
         """
         将各种复杂空白（换行、tab、多空格）统一为：
         - 行内：单个空格

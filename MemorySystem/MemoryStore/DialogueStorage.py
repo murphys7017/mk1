@@ -71,7 +71,7 @@ class DialogueStorage:
         self.raw_buffer.append(user_input)
 
         splitIndex = self.should_consider_summarize(
-            self.raw_history.get_dialogues(1)[0], 
+            self.raw_history.getDialogues(1)[0], 
             self.raw_buffer)
         
         if splitIndex > 0:
@@ -89,7 +89,7 @@ class DialogueStorage:
             logger.debug(f"splitIndex {splitIndex},摘要后，剩余未摘要对话数量：{len(self.raw_buffer)}")
         
  
-        return self.raw_history.get_dialogues(self.history_window)
+        return self.raw_history.getDialogues(self.history_window)
 
 
     def should_consider_summarize(self,now_dialogue: DialogueMessage, raw_buffer: List[ChatMessage]) -> int:
@@ -141,15 +141,15 @@ class DialogueStorage:
             currentDialogue = DialogueMessage(start_timestamp=current_message.timestamp,
                                       start_timedate=current_message.timedate,
                                       summary=new_summary)
-            self.raw_history.add_dialogue(currentDialogue)
+            self.raw_history.addDialogues(currentDialogue)
 
         else:
             new_summary = self.summarize_dialogue(
-                self.raw_history.get_dialogues(1)[0],
+                self.raw_history.getDialogues(1)[0],
                 self.raw_buffer,
             )
 
-            current_ = self.raw_history.get_dialogues(1)[0]
+            current_ = self.raw_history.getDialogues(1)[0]
             if current_ is None:
                 current_ = DialogueMessage(
                     start_timedate=self.raw_buffer[0].timedate,
@@ -164,7 +164,7 @@ class DialogueStorage:
                 current_.end_timedate = current_message.timedate
 
 
-            self.raw_history.add_dialogue(current_)
+            self.raw_history.addDialogues(current_)
 
     def summarize_dialogue(
         self,
@@ -197,7 +197,7 @@ class DialogueStorage:
                         dialogues_text=dialogues_text
                     )
         input_text = SystemPrompt.summarize_dialogue_prompt() + input_text
-        input_text = tools.normalize_block(input_text)
+        input_text = tools.normalizeBlock(input_text)
         # === 2. 调用 OpenAI ===
         model = SystemPrompt.summarize_dialogue_model()
         options = {

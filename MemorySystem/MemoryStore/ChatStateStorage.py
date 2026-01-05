@@ -31,14 +31,14 @@ class ChatStateStorage:
 
     
     def activate_update_state(self):
-        chat_buffer = self.raw_history.get_history()[ -self.history_window :]
+        chat_buffer = self.raw_history.getHistory()[ -self.history_window :]
         buffer_text = " "
    
         for msg in chat_buffer:
             buffer_text += f"[{msg.chat_turn_id}] role:{msg.role} content:{msg.content}\n"
         input_text = SystemPrompt.judgeChatStatePrompt().format(
             dialogue_turns=buffer_text)
-        input_text = tools.normalize_block(input_text)
+        input_text = tools.normalizeBlock(input_text)
         # === 2. 调用 Ollama（示意） ===
         model = SystemPrompt.judgeChatStateModel()
         options = {"temperature": 0, "top_p": 1}
@@ -48,10 +48,10 @@ class ChatStateStorage:
 
         if data is not None:
             self.chat_state = ChatState.from_dict(data)
-            self.activated_turn = self.raw_history.get_history()[-1].chat_turn_id
+            self.activated_turn = self.raw_history.getHistory()[-1].chat_turn_id
     
     def checkAndUpdateState(self):
-        if self.raw_history.get_history()[-1].chat_turn_id - self.activated_turn > self.history_window:
+        if self.raw_history.getHistory()[-1].chat_turn_id - self.activated_turn > self.history_window:
             self.activate_update_state()
     
     def getChatState(self) -> ChatState:
