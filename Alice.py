@@ -7,15 +7,28 @@ from PerceptionSystem.PerceptionSystem import PerceptionSystem
 from MemorySystem.MemorySystem import MemorySystem
 from loguru import logger
 
-from RawChatHistory import RawChatHistory
+from RawChatHistory.RawChatHistory import RawChatHistory
+from RawChatHistory.SqlitManagementSystem import SqlitManagementSystem
 
 class Alice:
-    def __init__(self, api_key: str,client):
-        self.raw_history = RawChatHistory()
+    """ Alice 聊天机器人主类
+    包含感知系统和记忆系统
+    
+    pipline:
+    用户多模态输入 -> 感知系统分析 -> 记忆系统构建消息 -> LLM生成响应 -> 返回响应 -> 更新记忆系统 
 
-        if self.raw_history is None:
-            logger.error("RawChatHistory is not initialized.")
-            raise ValueError("RawChatHistory must be provided to initialize MemorySystem.")
+    """
+    def __init__(self, api_key: str,client, **kwargs):
+        self.history_manager = SqlitManagementSystem(
+                                                    kwargs.get("db_path", "chat_history.db"), 
+                                                    echo=kwargs.get("echo", False), 
+                                                   )
+        self.raw_history = RawChatHistory(
+                                        self.history_manager,
+                                        history_length=kwargs.get("history_length", 100), 
+                                        dialogue_length=kwargs.get("dialogue_length", 10)
+                                        )
+
         
         self.local_model_func = LocalModelFunc()
 

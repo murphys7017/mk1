@@ -4,7 +4,7 @@ from pathlib import Path
 from loguru import logger
 import os
 
-class RawChatHistory:
+class RawChatHistoryFile:
     def __init__(self,
                  max_length: int = 100,
                  initial_load: bool = True,
@@ -65,32 +65,25 @@ class RawChatHistory:
 
         for msg in self.read_last_n_lines(self.raw_save_file, self.initial_load_length):
             data = json.loads(msg.strip())
-            message = ChatMessage(
-                role=data["role"],
-                content=data["content"],
-                timestamp=data["timestamp"],
-                timedate=data["timedate"],
-                media_type=data["media_type"],
-                extra=data.get("extra", None),
-                chat_turn_id=data.get("chat_turn_id", None)
-            )
+            message = ChatMessage.from_dict(data)
             self.raw_history.append(message)
         
         for dialogue in self.read_last_n_lines(self.dialogue_save_file, self.initial_load_length):
             data = json.loads(dialogue.strip())
-            dialogue_message = DialogueMessage(
-                start_timestamp=data["start_timestamp"],
-                start_timedate=data["start_timedate"],
-                summary=data["summary"],
-                end_timestamp=data.get("end_timestamp", None),
-                end_timedate=data.get("end_timedate", None)
-            )
+            dialogue_message = DialogueMessage.from_dict(data)
             self.dialogue_history.append(dialogue_message)
 
     def getHistory(self) -> list:
         return self.raw_history
     def getHistoryLength(self) -> int:
         return len(self.raw_history)
+    
+    def getDialogueById(self, dialogue_id: int) -> DialogueMessage|None:
+        for dialogue in self.dialogue_history:
+            if dialogue.dialogue_id == dialogue_id:
+                return dialogue
+        return None
+    
     def getDialogues(self, length: int) -> list:
         if length >= len(self.dialogue_history):
             return [None]
@@ -98,7 +91,6 @@ class RawChatHistory:
             res = []
             i = 0
             for dialogue in self.dialogue_history:
-                if dialogue.end_timestamp is not None:
                     res.append(dialogue)
                     i += 1
                     if i >= length:
@@ -106,8 +98,18 @@ class RawChatHistory:
             return res
         else:
             return self.dialogue_history[-length:]
+    def updateDialogue(self, dialogue: DialogueMessage):
+        for i in range(len(self.dialogue_history)):
+            if self.dialogue_history[i].dialogue_id == dialogue.dialogue_id:
+                self.dialogue_history[i] = dialogue
+                break
+        # 重写文件
+        with self.dialogue_save_file.open("w", encoding="utf-8") as f:
+            for dlg in self.dialogue_history:
+                f.write(dlg.to_json() + "\n")
     
     def addDialogues(self, dialogue: DialogueMessage):
+        dialogue.dialogue_id = (self.dialogue_history[-1].dialogue_id + 1) if len(self.dialogue_history) > 0 and self.dialogue_history[-1].dialogue_id is not None else 1
         self.dialogue_history.append(dialogue)
         self.dialogue_history = self.dialogue_history[-self.max_length:]
         with self.dialogue_save_file.open("a", encoding="utf-8") as f:

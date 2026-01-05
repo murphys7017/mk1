@@ -4,7 +4,7 @@ from MemorySystem.MemoryPolicy import MemoryPolicy
 from MemorySystem.MemoryAssembler import MemoryAssembler
 from MemorySystem.MemoryStore.MemoryStorage import MemoryStorage
 from MessageModel import ChatMessage
-from RawChatHistory import RawChatHistory
+from RawChatHistory.RawChatHistory import RawChatHistory
 
 class MemorySystem:
     def __init__(self, raw_history: RawChatHistory, local_model_func: LocalModelFunc):

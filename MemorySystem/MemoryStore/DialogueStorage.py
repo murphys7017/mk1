@@ -6,7 +6,7 @@ import json
 
 from LocalModelFunc import LocalModelFunc
 from MemorySystem import MemoryPolicy
-from RawChatHistory import RawChatHistory
+from RawChatHistory.RawChatHistory import RawChatHistory
 from MessageModel import ChatMessage, DialogueMessage
 from MemorySystem.MemoryPolicy import MemoryPolicy
 
@@ -70,8 +70,10 @@ class DialogueStorage:
         """
         self.raw_buffer.append(user_input)
 
+        logger.debug(f"getDialogues info {self.raw_history.getDialogues(1)}")
+        dialogues = self.raw_history.getDialogues(1)
         splitIndex = self.should_consider_summarize(
-            self.raw_history.getDialogues(1)[0], 
+            dialogues[0] if len(dialogues) > 0 else None, 
             self.raw_buffer)
         
         if splitIndex > 0:
@@ -92,7 +94,7 @@ class DialogueStorage:
         return self.raw_history.getDialogues(self.history_window)
 
 
-    def should_consider_summarize(self,now_dialogue: DialogueMessage, raw_buffer: List[ChatMessage]) -> int:
+    def should_consider_summarize(self,now_dialogue: DialogueMessage|None, raw_buffer: List[ChatMessage]) -> int:
         """
         判断是否需要进行摘要
         返回值：
@@ -132,71 +134,53 @@ class DialogueStorage:
         0表示新建摘要，>0表示更新现有摘要
         """
 
-        current_message = self.raw_buffer[action-1]
-        if action == 0:
-            new_summary = self.summarize_dialogue(
-                None,
-                self.raw_buffer,
-            )
-            currentDialogue = DialogueMessage(start_timestamp=current_message.timestamp,
-                                      start_timedate=current_message.timedate,
-                                      summary=new_summary)
-            self.raw_history.addDialogues(currentDialogue)
-
+        current_message = self.raw_buffer[action]
+        summary_res = self.summarize_dialogue(
+            self.raw_history.getDialogues(3),
+            self.raw_buffer[:action+1],
+        )
+        if summary_res['summary_id'] == -1:
+            logger.warning("摘要模型未返回有效摘要ID，跳过摘要操作。")
         else:
-            new_summary = self.summarize_dialogue(
-                self.raw_history.getDialogues(1)[0],
-                self.raw_buffer,
-            )
+            logger.info(f"生成摘要结果：{summary_res}")
+            if summary_res['action'] == "new":
+                currentDialogue = DialogueMessage(
+                    start_turn_id=self.raw_buffer[0].chat_turn_id if self.raw_buffer[0].chat_turn_id is not None else -1,
+                    is_completed=False,
+                    summary=summary_res['summary_content']
+                )
+                self.raw_history.addDialogues(currentDialogue)
+            elif summary_res['action'] == "update":
+                dialogue = summary_res['dialogue']
+                dialogue.summary = summary_res['summary_content']
+                dialogue.end_turn_id = current_message.chat_turn_id
+                self.raw_history.addDialogues(dialogue)
 
-            current_ = self.raw_history.getDialogues(1)[0]
-            if current_ is None:
-                current_ = DialogueMessage(
-                    start_timedate=self.raw_buffer[0].timedate,
-                    start_timestamp=self.raw_buffer[0].timestamp,
-                    end_timestamp=current_message.timestamp,
-                    end_timedate=current_message.timedate,
-                    summary=new_summary
-            )
-            else:
-                current_.summary = new_summary
-                current_.end_timestamp = current_message.timestamp
-                current_.end_timedate = current_message.timedate
-
-
-            self.raw_history.addDialogues(current_)
 
     def summarize_dialogue(
         self,
-        summary: DialogueMessage|None,
+        summarys: list[DialogueMessage],
         dialogues: list[ChatMessage]
-    ) -> str:
+    ) -> dict:
         """
         使用 3B 摘要模型（Ollama）
         返回长期记忆友好的摘要文本
         """
+        summary_text = ""
+        if summarys:
+            for summary in summarys:
+                summary_text += f"- [summary_id]{summary.dialogue_id}[summary_content]{summary.summary}\n"
         dialogues_text = " "
         i = 1
         for msg in dialogues:
                 dialogues_text += f"[{i}] role:{msg.role} content:{msg.content}\n"
                 i += 1
 
-        input_text = """
-                    【已有摘要】
-                    {summary}
 
-                    【未摘要对话】
-                    {dialogues_text}
-
-                    请根据以上内容，生成新的长期记忆摘要。
-                    返回要求：
-                    {{"summary": "文本内容"}}
-                    """
-        input_text = input_text.format(
-                        summary=summary.summary if summary else "（无）",
+        input_text = SystemPrompt.summarize_dialogue_prompt().format(
+                        summary_text=summary_text,
                         dialogues_text=dialogues_text
                     )
-        input_text = SystemPrompt.summarize_dialogue_prompt() + input_text
         input_text = tools.normalizeBlock(input_text)
         # === 2. 调用 OpenAI ===
         model = SystemPrompt.summarize_dialogue_model()
@@ -207,20 +191,31 @@ class DialogueStorage:
             "num_predict": 256
         }
         data = self.local_model_func._call_ollama_api(input_text, model, options)
-        summary_text = (data.get("summary", summary.summary if summary else "（无）")).strip()
-    
+        dialogue_id = data.get("summary_id", None)
+        if dialogue_id:
+            dialogue = self.raw_history.getDialogueById(dialogue_id)
+            if dialogue is not None:
+                summary_text = (data.get("summary_content", "（无）")).strip()
+                summary_action = (data.get("action", "update")).strip()
 
-        # === 3. 后处理（非常重要） ===
-        summary_text = summary_text.strip()
+                # === 3. 后处理（非常重要） ===
+                summary_text = summary_text.strip()
+                # 兜底：防止模型输出空文本或胡言乱语
+                if len(summary_text) < 5:
+                    summary_text = "（无）"
 
-        # 兜底：防止模型输出空文本或胡言乱语
-        if not summary_text or len(summary_text) < 5:
-            return summary.summary if summary else "（无）"
+                return {
+                        "summary_id": dialogue_id,
+                        "summary_content": summary_text,
+                        "action": summary_action,
+                        "dialogue": dialogue
+                    }
 
-        # 防止模型偷偷变第一人称
-        summary_text = self._sanitize_summary(summary_text)
-
-        return summary_text
+        return {
+                    "summary_id": -1,
+                    "summary_content": summary_text,
+                    "action": "new"
+                }
 
 
     def _sanitize_summary(self, text: str) -> str:

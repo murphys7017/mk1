@@ -1,0 +1,38 @@
+import json
+from MessageModel import ChatMessage, DialogueMessage
+from pathlib import Path
+from loguru import logger
+import os
+
+class RawChatHistory:
+    def __init__(self,manageer, history_length=100, dialogue_length=10):
+        self.sql_manager = manageer
+        self.history_length = history_length
+        self.dialogue_length = dialogue_length
+
+    def getHistory(self,length = -1) -> list[ChatMessage]:
+        if length == -1:
+            length = self.history_length
+        return self.sql_manager.getHistory(length)
+    
+    def getHistoryLength(self) -> int:
+        return self.sql_manager.getHistoryLength()
+    
+    def getDialogueById(self, dialogue_id: int) -> DialogueMessage|None:
+        return self.sql_manager.getDialoguesById(dialogue_id)
+    
+    def getDialogues(self, length: int = -1) -> list:
+        if length == -1:
+            length = self.dialogue_length
+        return self.sql_manager.getDialogues(length)
+    
+    def updateDialogue(self, dialogue: DialogueMessage):
+        return self.sql_manager.updateDialogue(dialogue)
+    
+    def addDialogues(self, dialogue: DialogueMessage):
+        return self.sql_manager.addDialogue(dialogue)
+
+    def addMessage(self, message: ChatMessage):
+        return self.sql_manager.addMessage(message)
+        
+    

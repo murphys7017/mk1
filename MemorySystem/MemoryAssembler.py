@@ -3,7 +3,7 @@ from MemorySystem.MemoryStore.MemoryStorage import MemoryStorage
 from MessageModel import ChatMessage
 from loguru import logger
 from tools import tools
-from RawChatHistory import RawChatHistory
+from RawChatHistory.RawChatHistory import RawChatHistory
 
 class MemoryAssembler:
     def __init__(self,
@@ -76,7 +76,7 @@ class MemoryAssembler:
         - user_attitude:{chat_state.user_attitude}
         - emotional_state:{chat_state.emotional_state}
         - leading_approach:{chat_state.leading_approach}
-        - last_message_analysis: {self.raw_history.getHistory()[-1].getExtra()}
+        - last_message_analysis: {self.raw_history.getHistory(1)[0].getExtra()}
         </{self.CHAT_STATE_TAG}>
         """.strip()
     
@@ -117,7 +117,7 @@ class MemoryAssembler:
         })
 
         # 原始对话放最后
-        buffer = self.raw_history.getHistory()[self.history_window * -1:]
+        buffer = self.raw_history.getHistory(self.history_window)
         for msg in buffer:
             messages.append(msg.buildMessage())
         

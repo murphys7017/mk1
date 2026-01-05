@@ -1,10 +1,10 @@
 
 from LocalModelFunc import LocalModelFunc
 from MessageModel import ChatState
-from RawChatHistory import RawChatHistory
+from RawChatHistory.RawChatHistory import RawChatHistory
 from SystemPrompt import SystemPrompt
 from tools import tools
-
+from loguru import logger
 
 class ChatStateStorage:
     """
@@ -26,12 +26,17 @@ class ChatStateStorage:
         self.history_window = history_window
 
         self.activated_turn = 0
-        self.chat_state: ChatState
+        self.chat_state: ChatState = ChatState(
+                                    interaction = "闲聊",
+                                    user_attitude = "积极",
+                                    emotional_state = "平静",
+                                    leading_approach = "用户主导"
+                                    )
 
 
     
     def activate_update_state(self):
-        chat_buffer = self.raw_history.getHistory()[ -self.history_window :]
+        chat_buffer = self.raw_history.getHistory(self.history_window)
         buffer_text = " "
    
         for msg in chat_buffer:
@@ -44,15 +49,17 @@ class ChatStateStorage:
         options = {"temperature": 0, "top_p": 1}
 
         data = self.local_model_func._call_ollama_api(input_text, model, options)
-        # logger.debug(f"Judge Dialogue Summary Response: {data}")
+        logger.debug(f"Judge Dialogue Summary Response: {data}")
 
         if data is not None:
             self.chat_state = ChatState.from_dict(data)
-            self.activated_turn = self.raw_history.getHistory()[-1].chat_turn_id
+            self.activated_turn = self.raw_history.getHistory(1)[0].chat_turn_id
     
     def checkAndUpdateState(self):
-        if self.raw_history.getHistory()[-1].chat_turn_id - self.activated_turn > self.history_window:
-            self.activate_update_state()
+        current_turn = self.raw_history.getHistory(1)[0].chat_turn_id
+        if current_turn is not None and self.activated_turn is not None:
+            if current_turn - self.activated_turn > self.history_window:
+                self.activate_update_state()
     
     def getChatState(self) -> ChatState:
         return self.chat_state
