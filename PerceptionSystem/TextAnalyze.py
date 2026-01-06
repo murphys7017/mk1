@@ -1,19 +1,20 @@
 
 import time
-from LocalModelFunc import LocalModelFunc
-from MessageModel import ChatMessage
+from LLM.LLMManagement import LLMManagement
+from DataClass.ChatMessage import ChatMessage
+from PerceptionSystem.Analyzeabstract import Analyze
 from SystemPrompt import SystemPrompt
 
 
-class TextAnalyze:
-    def __init__(self, local_model_func: LocalModelFunc):
-        self.local_model_func = local_model_func
+class TextAnalyze(Analyze):
+    def __init__(self, llm_management: LLMManagement):
+        self.llm_management = llm_management
     
-    def textAnalysz(self, text: str) -> ChatMessage:
-        analysis_results = self.text_analysis(text)
+    def analyze(self, input_data: str) -> ChatMessage:
+        analysis_results = self.text_analysis(input_data)
         return ChatMessage(
             role="user",
-            content=text,
+            content=input_data,
             timestamp=int(round(time.time() * 1000)),
             timedate=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
             media_type="text",
@@ -25,15 +26,14 @@ class TextAnalyze:
         """
         使用 1.7B 文本分析模型（Ollama）
         """
-
-        input_text = SystemPrompt.text_analysis_prompt()
-        input_text = input_text.replace("{input}", text)
-
-        # === 2. 调用 Ollama（示意） ===
-        model = SystemPrompt.text_analysis_model()
         options = {"temperature": 0, "top_p": 1}
 
-        data = self.local_model_func._call_ollama_api(input_text, model, options)
+        data = self.llm_management.generate(
+            prompt_name="text_analysis",
+            options=options,
+            input=text
+        )
+
         if data is {} or data is None:
             return {
                 "is_question": False,

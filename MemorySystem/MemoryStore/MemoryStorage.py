@@ -1,7 +1,6 @@
 
-from LocalModelFunc import LocalModelFunc
+from LLM.LLMManagement import LLMManagement
 from MemorySystem import MemoryPolicy
-from MemorySystem.MemoryStore.ChatStateStorage import ChatStateStorage
 from RawChatHistory.RawChatHistory import RawChatHistory
 from MemorySystem.MemoryStore.DialogueStorage import DialogueStorage
 from MemorySystem.MemoryStore.IdentitiyMemory import IdentitiyMemory
@@ -10,11 +9,10 @@ from MessageModel import ChatMessage, ChatState, DialogueMessage
 
 
 class MemoryStorage:
-    def __init__(self,raw_history: RawChatHistory, local_model_func: LocalModelFunc, policy: MemoryPolicy):
+    def __init__(self,raw_history: RawChatHistory, llm_management: LLMManagement, policy: MemoryPolicy):
         self.raw_history = raw_history
         self.identity_memory = IdentitiyMemory()
-        self.dialogue_storage = DialogueStorage(raw_history, local_model_func, policy)
-        self.chat_state_storage = ChatStateStorage(raw_history, local_model_func)
+        self.dialogue_storage = DialogueStorage(raw_history, llm_management, policy)
         
 
     def getIdentity(self) -> str:
@@ -23,9 +21,3 @@ class MemoryStorage:
     def getDialogue(self, user_input: ChatMessage) -> list[DialogueMessage]:
         return self.dialogue_storage.ingestDialogue(user_input)
     
-
-    def getChatState(self) -> ChatState:
-        return self.chat_state_storage.getChatState()
-    def checkAndUpdateState(self):
-        self.chat_state_storage.checkAndUpdateState()
-        return self.chat_state_storage.getChatState()

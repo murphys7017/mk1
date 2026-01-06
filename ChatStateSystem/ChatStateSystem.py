@@ -1,6 +1,6 @@
 
-from LocalModelFunc import LocalModelFunc
-from MessageModel import ChatState
+from LLM.LLMManagement import LLMManagement
+from DataClass.ChatState import ChatState
 from RawChatHistory.RawChatHistory import RawChatHistory
 from SystemPrompt import SystemPrompt
 from tools import tools
@@ -16,13 +16,15 @@ class ChatStateStorage:
     def __init__(
         self,
         raw_history: RawChatHistory,
-        local_model_func: LocalModelFunc,
+        llm_management: LLMManagement,
+        system_prompt: SystemPrompt,
         # 最大长度
         history_window: int = 4,
         
     ):
         self.raw_history = raw_history
-        self.local_model_func = local_model_func
+        self.llm_management = llm_management
+        self.system_prompt = system_prompt
         self.history_window = history_window
 
         self.activated_turn = 0
@@ -41,19 +43,18 @@ class ChatStateStorage:
    
         for msg in chat_buffer:
             buffer_text += f"[{msg.chat_turn_id}] role:{msg.role} content:{msg.content}\n"
-        input_text = SystemPrompt.judgeChatStatePrompt().format(
-            dialogue_turns=buffer_text)
-        input_text = tools.normalizeBlock(input_text)
-        # === 2. 调用 Ollama（示意） ===
-        model = SystemPrompt.judgeChatStateModel()
-        options = {"temperature": 0, "top_p": 1}
 
-        data = self.local_model_func._call_ollama_api(input_text, model, options)
+        data = self.llm_management.generate(
+            prompt_name ='judge_chat_state', 
+            options = {"temperature": 0, "top_p": 1},
+            dialogue_turns=buffer_text)
+  
         logger.debug(f"Judge Dialogue Summary Response: {data}")
 
         if data is not None:
+            data['updated_at'] =chat_buffer[0].chat_turn_id
             self.chat_state = ChatState.from_dict(data)
-            self.activated_turn = self.raw_history.getHistory(1)[0].chat_turn_id
+            self.activated_turn = chat_buffer[0].chat_turn_id
     
     def checkAndUpdateState(self):
         current_turn = self.raw_history.getHistory(1)[0].chat_turn_id

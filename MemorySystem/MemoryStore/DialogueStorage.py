@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass
 import json
 
-from LocalModelFunc import LocalModelFunc
+from LLM.LLMManagement import LLMManagement
 from MemorySystem import MemoryPolicy
 from RawChatHistory.RawChatHistory import RawChatHistory
 from MessageModel import ChatMessage, DialogueMessage
@@ -30,7 +30,7 @@ class DialogueStorage:
     def __init__(
         self,
         raw_history: RawChatHistory,
-        local_model_func: LocalModelFunc,
+        llm_management: LLMManagement,
         policy: MemoryPolicy,
         # 最大长度
         max_raw_buffer: int = 50,
@@ -52,7 +52,7 @@ class DialogueStorage:
         self.max_raw_buffer = max_raw_buffer
         self.min_raw_for_summary = min_raw_for_summary
 
-        self.local_model_func = local_model_func
+        self.llm_management = llm_management
 
         self.policy = policy
 
@@ -176,21 +176,19 @@ class DialogueStorage:
                 dialogues_text += f"[{i}] role:{msg.role} content:{msg.content}\n"
                 i += 1
 
-
-        input_text = SystemPrompt.summarize_dialogue_prompt().format(
-                        summary_text=summary_text,
-                        dialogues_text=dialogues_text
-                    )
-        input_text = tools.normalizeBlock(input_text)
-        # === 2. 调用 OpenAI ===
-        model = SystemPrompt.summarize_dialogue_model()
         options = {
             "temperature": 0.25,
             "top_p": 0.9,
             "repeat_penalty": 1.05,
             "num_predict": 256
         }
-        data = self.local_model_func._call_ollama_api(input_text, model, options)
+        data = self.llm_management.generate(
+                        prompt_name="summarize_dialogue",
+                        options=options,
+                        summary=summary_text,
+                        dialogues_text=dialogues_text
+                    )
+       
         dialogue_id = data.get("summary_id", None)
         if dialogue_id:
             dialogue = self.raw_history.getDialogueById(dialogue_id)

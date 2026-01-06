@@ -1,7 +1,7 @@
 import time
 from typing import Any
 from openai import OpenAI
-from LocalModelFunc import LocalModelFunc
+from LLM.LLMManagement import LLMManagement
 from MessageModel import ChatMessage
 from PerceptionSystem.PerceptionSystem import PerceptionSystem
 from MemorySystem.MemorySystem import MemorySystem
@@ -9,6 +9,7 @@ from loguru import logger
 
 from RawChatHistory.RawChatHistory import RawChatHistory
 from RawChatHistory.SqlitManagementSystem import SqlitManagementSystem
+from SystemPrompt import SystemPrompt
 
 class Alice:
     """ Alice 聊天机器人主类
@@ -19,6 +20,9 @@ class Alice:
 
     """
     def __init__(self, api_key: str,client, **kwargs):
+        self.llm_management = LLMManagement()
+        self.system_prompt = SystemPrompt()
+
         self.history_manager = SqlitManagementSystem(
                                                     kwargs.get("db_path", "chat_history.db"), 
                                                     echo=kwargs.get("echo", False), 
@@ -29,12 +33,9 @@ class Alice:
                                         dialogue_length=kwargs.get("dialogue_length", 10)
                                         )
 
-        
-        self.local_model_func = LocalModelFunc()
+        self.perception_system = PerceptionSystem(self.llm_management)
 
-        self.perception_system = PerceptionSystem()
-
-        self.memory_system = MemorySystem(self.raw_history, self.local_model_func)
+        self.memory_system = MemorySystem(self.raw_history, self.llm_management)
 
     
         self.client = client
@@ -45,42 +46,41 @@ class Alice:
         目前仅返回最后一个输入，后续可改为更复杂的聚合逻辑
         """
         return user_inputs[-1]
-
-    def process_input(self, user_inputs: list[Any]):
-        """
-        处理用户多模态输入，调用感知系统进行分析
-        返回聚合后的输入
-        """
-        processd_inputs = []
-        for user_input in user_inputs:
-            res = self.perception_system.analyze(user_input)
-            if res:
-                processd_inputs.append(res)
-        if len(processd_inputs) == 0:
-            logger.warning("No valid input perceived.")
-            return None
-        aggregated_input = self.aggregated_input(processd_inputs)
-        logger.info(f"Perceived input: {aggregated_input}")
-
-        self.raw_history.addMessage(aggregated_input)
-        self.memory_system.strorage.checkAndUpdateState()
-
-        messages = self.memory_system.buildMessages(aggregated_input)
-        
-        return messages
+    async def process_input(self, user_inputs: dict[str, Any]) -> ChatMessage:
+        messages = await self.perception_system.analyze(user_inputs)
+        logger.debug(f"Perceived messages: {messages}")
+        if messages is None or len(messages) == 0:
+            logger.warning("输入分析失败，将使用原始文本输入")
+            if "text" not in user_inputs:
+                return ChatMessage(
+                    role="system", content="抱歉，我无法理解您的输入。",
+                    timestamp=int(round(time.time() * 1000)),
+                    timedate=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+                    media_type="text",
+                    )
+            else:
+                messages = [ChatMessage(
+                    role="user", content=user_inputs["text"],
+                    timestamp=int(round(time.time() * 1000)),
+                    timedate=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+                    media_type="text",
+                    )]
+        aggregated_input = self.aggregated_input(messages)
+        return aggregated_input
     
-    def respond(self, user_inputs: list[Any]) -> str:
+    async def respond(self, user_inputs: dict[str, Any]) -> str:
         """
         生成对用户输入的响应
         """
-        messages = self.process_input(user_inputs)
+        user_input = await self.process_input(user_inputs)
+
+        messages = [] # global context assember
+
         logger.debug(f"Built messages for response: {messages}")
-        if messages is None:
-            return "抱歉，我无法理解您的输入。"
-        else:
-            response = self.client.respond(messages)
-            logger.info(f"Alice response: {response}")
-            self.raw_history.addMessage(ChatMessage(
+
+        response = self.client.respond(messages)
+        logger.info(f"Alice response: {response}")
+        self.raw_history.addMessage(ChatMessage(
                 role="assistant", content=response,
                 timestamp=int(round(time.time() * 1000)),
                 timedate=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),

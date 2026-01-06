@@ -4,7 +4,8 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.dialects.sqlite import JSON
 
-from MessageModel import ChatMessage, DialogueMessage
+from DataClass.ChatMessage import ChatMessage
+from DataClass.DialogueMessage import DialogueMessage
 
 Base = declarative_base()
 

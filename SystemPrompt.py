@@ -1,4 +1,78 @@
+from DataClass.PromptTemplate import PromptTemplate
+
+
 class SystemPrompt:
+
+    def __init__(self):
+        self.prompt_map = {}
+
+    def load_template(self):
+        self.prompt_map['split_buffer_by_topic_continuation'] = PromptTemplate(
+            name='split_buffer_by_topic_continuation',
+            template=SystemPrompt.split_buffer_by_topic_continuation_prompt(),
+            required_fields=["current_summary", "dialogue_turns"],
+            output_schema={"index": "int"}
+        )
+        self.prompt_map['text_analysis'] = PromptTemplate(
+            name='text_analysis',
+            template=SystemPrompt.text_analysis_prompt(),
+            required_fields=["input"],
+            output_schema={
+                "is_question": "bool",
+                "is_self_reference": "bool",
+                "mentioned_entities": "list[str]",
+                "emotional_cues": "list[str]"
+            }
+        )
+        self.prompt_map['judge_dialogue_summary'] = PromptTemplate(
+            name='judge_dialogue_summary', 
+            template=SystemPrompt.judge_dialogue_summary_prompt(),
+            required_fields=["summary_text", "dialogues_text"],
+            output_schema={
+                "need_summary": "bool",
+                "summary_action": "str"
+            }
+        )
+        self.prompt_map['summarize_dialogue'] = PromptTemplate(
+            name='summarize_dialogue',
+            template=SystemPrompt.summarize_dialogue_prompt(),
+            required_fields=["summary_text", "dialogues_text"],
+            output_schema={
+                "summary_id": "str",
+                "summary_content": "str",
+                "action": "str"
+            }
+        )
+        self.prompt_map['judge_chat_state'] = PromptTemplate(
+            name='judge_chat_state',
+            template=SystemPrompt.judgeChatStatePrompt(),
+            required_fields=["dialogue_turns"],
+            output_schema={
+                "interaction": "str",
+                "user_attitude": "str",
+                "emotional_state": "str",
+                "leading_approach": "str"
+            }
+        )
+        self.prompt_map['response_guidelines'] = PromptTemplate(
+            name='response_guidelines',
+            template="""
+                    你将接收到一些结构化上下文。
+                    它们仅用于你理解情况。
+
+                    【绝对规则】
+                    - 你的回复必须是纯自然语言
+                    - 不得包含任何 XML、标签、结构化内容
+                    - 不得重复或模仿输入格式
+                    - 直接像真人一样说话
+                    """.strip(),
+            required_fields=[],
+            output_schema={}
+        )
+    def getPrompt(self, prompt_name: str) -> PromptTemplate:
+        return self.prompt_map[prompt_name]
+        
+
     @staticmethod
     def split_buffer_by_topic_continuation_model():
         return "qwen3:1.7b"
@@ -86,10 +160,13 @@ class SystemPrompt:
   "need_summary": true | false,
   "summary_action": "merge" | "new" | "none"
 }
-/no-thoughts
-/no-thinking
-/no_thinking
-        """
+
+【已有摘要】
+{summary}
+
+【最近对话】
+{dialogues}
+"""
     
     @staticmethod
     def summarize_dialogue_model():
