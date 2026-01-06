@@ -45,8 +45,8 @@ class MemoryPolicy:
             data = self.llm_management.generate(
                 prompt_name="judge_dialogue_summary",
                 options={"temperature": 0, "top_p": 1},
-                summary=summary,
-                dialogues=dialogues
+                summary_text=summary,
+                dialogues_text=dialogues
             )
 
             logger.debug(f"Judge Dialogue Summary Response: {data}")

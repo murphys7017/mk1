@@ -5,6 +5,7 @@ class SystemPrompt:
 
     def __init__(self):
         self.prompt_map = {}
+        self.load_template()
 
     def load_template(self):
         self.prompt_map['split_buffer_by_topic_continuation'] = PromptTemplate(
@@ -162,10 +163,10 @@ class SystemPrompt:
 }
 
 【已有摘要】
-{summary}
+{summary_text}
 
 【最近对话】
-{dialogues}
+{dialogues_text}
 """
     
     @staticmethod
