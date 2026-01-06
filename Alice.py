@@ -2,7 +2,7 @@ import time
 from typing import Any
 from openai import OpenAI
 from LLM.LLMManagement import LLMManagement
-from MessageModel import ChatMessage
+from DataClass.ChatMessage import ChatMessage
 from PerceptionSystem.PerceptionSystem import PerceptionSystem
 from MemorySystem.MemorySystem import MemorySystem
 from loguru import logger
@@ -19,7 +19,7 @@ class Alice:
     用户多模态输入 -> 感知系统分析 -> 记忆系统构建消息 -> LLM生成响应 -> 返回响应 -> 更新记忆系统 
 
     """
-    def __init__(self, api_key: str,client, **kwargs):
+    def __init__(self,client, **kwargs):
         self.llm_management = LLMManagement()
         self.system_prompt = SystemPrompt()
 

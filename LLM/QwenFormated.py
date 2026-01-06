@@ -3,7 +3,8 @@ from typing import Any
 import requests
 from loguru import logger
 import json
-
+import os
+from openai import OpenAI
 class QwenFormated(LLM):
     def generate(self, prompt: str, model: str, options: dict | None = None) -> dict:
         return self._call_openai_api(prompt, model, options)
@@ -20,12 +21,11 @@ class QwenFormated(LLM):
         返回：
             dict，包含 response/message 字段内容
         """
-        import os
-        from openai import OpenAI
+
 
         client = OpenAI(
             # 若没有配置环境变量，请用百炼API Key将下行替换为：api_key="sk-xxx"
-            api_key="sk-eca32ece6ecc4f3ebace6fd5805e7e2c",
+            api_key= os.environ.get("OPENAI_API_KEY") ,
             base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
         )
         model = 'qwen-plus'

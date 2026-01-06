@@ -1,8 +1,10 @@
 from typing import List
+from ChatStateSystem.ChatStateSystem import ChatStateSystem
 from ContextAssembler.GlobalContextAssembler import GlobalContextAssembler
 from DataClass.ChatMessage import ChatMessage
 from typing import Any
 
+from MemorySystem.MemorySystem import MemorySystem
 from tools import tools
 
 
@@ -10,14 +12,14 @@ class DefaultGlobalContextAssembler(GlobalContextAssembler):
 
     def __init__(
         self,
-        memory_storage,
-        chat_state_system,
+        memory_system: MemorySystem,
+        chat_state_system: ChatStateSystem,
         raw_history,
         response_protocol: str,
         history_window: int = 20,
         max_dialogue_summary: int = 3
     ):
-        self.memory_storage = memory_storage
+        self.memory_system = memory_system
         self.chat_state_system = chat_state_system
         self.response_protocol = response_protocol
         self.history_window = history_window
@@ -28,7 +30,7 @@ class DefaultGlobalContextAssembler(GlobalContextAssembler):
         self
     ) -> list[dict[str, Any]]:
         
-        memory_system_prompt = self.memory_storage.assemble()
+        memory_system_prompt = self.memory_system.assemble()
         chat_state_prompt = self.chat_state_system.assemble()
 
         prompt = f"""

@@ -7,7 +7,8 @@ import json
 from LLM.LLMManagement import LLMManagement
 from MemorySystem import MemoryPolicy
 from RawChatHistory.RawChatHistory import RawChatHistory
-from MessageModel import ChatMessage, DialogueMessage
+from DataClass.ChatMessage import ChatMessage
+from DataClass.DialogueMessage import DialogueMessage
 from MemorySystem.MemoryPolicy import MemoryPolicy
 
 from loguru import logger

@@ -2,7 +2,7 @@ from typing import Optional, Literal
 import time
 from dataclasses import dataclass
 import json
-
+from DataClass.TagType import TagType
 @dataclass
 class ChatState:
 	"""
@@ -18,6 +18,18 @@ class ChatState:
 	emotional_state: str
 	leading_approach: str
 	updated_at: Optional[int] = None  # 对话轮数
+
+	def to_prompt(self) -> str:
+		return f"""
+		<{TagType.CHAT_STATE_TAG}>
+			当前对话状态：
+			- 互动类型：{self.interaction}
+			- 用户态度：{self.user_attitude}
+			- 情绪状态：{self.emotional_state}
+			- 主导方式：{self.leading_approach}
+		</{TagType.CHAT_STATE_TAG}>
+		"""
+	
 
 	def to_json(self) -> str:
 

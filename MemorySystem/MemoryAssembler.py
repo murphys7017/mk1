@@ -1,6 +1,6 @@
 
 from MemorySystem.MemoryStore.MemoryStorage import MemoryStorage
-from MessageModel import ChatMessage
+from DataClass.ChatMessage import ChatMessage
 from loguru import logger
 from tools import tools
 from RawChatHistory.RawChatHistory import RawChatHistory

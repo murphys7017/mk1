@@ -1,12 +1,11 @@
 import time
 from typing import Any
 from LLM.LLMManagement import LLMManagement
-from MessageModel import ChatMessage
+from DataClass.ChatMessage import ChatMessage
 from PerceptionSystem.TextAnalyze import TextAnalyze
 import asyncio
 from loguru import logger
 
-from SystemPrompt import SystemPrompt
 
 class PerceptionSystem:
     def __init__(self, llm_management: LLMManagement):

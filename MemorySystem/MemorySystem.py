@@ -3,7 +3,7 @@ from LLM.LLMManagement import LLMManagement
 from MemorySystem.MemoryPolicy import MemoryPolicy
 from MemorySystem.MemoryAssembler import MemoryAssembler
 from MemorySystem.MemoryStore.MemoryStorage import MemoryStorage
-from MessageModel import ChatMessage
+from DataClass.ChatMessage import ChatMessage
 from RawChatHistory.RawChatHistory import RawChatHistory
 
 class MemorySystem:

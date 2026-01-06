@@ -5,7 +5,9 @@ from RawChatHistory.RawChatHistory import RawChatHistory
 from MemorySystem.MemoryStore.DialogueStorage import DialogueStorage
 from MemorySystem.MemoryStore.IdentitiyMemory import IdentitiyMemory
 from MemorySystem.MemoryPolicy import MemoryPolicy
-from MessageModel import ChatMessage, ChatState, DialogueMessage
+from DataClass.ChatMessage import ChatMessage
+from DataClass.ChatState import ChatState
+from DataClass.DialogueMessage import DialogueMessage
 
 
 class MemoryStorage:
