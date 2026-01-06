@@ -186,7 +186,7 @@ class DialogueStorage:
         data = self.llm_management.generate(
                         prompt_name="summarize_dialogue",
                         options=options,
-                        summary=summary_text,
+                        summary_text=summary_text,
                         dialogues_text=dialogues_text
                     )
        
