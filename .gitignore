@@ -10,3 +10,4 @@ wheels/
 .venv
 raw_chat_history.txt
 dialogue_history.txt
+.env
