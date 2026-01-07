@@ -46,7 +46,7 @@ class PostTurnProcessor:
             self.memory_system.strorage.getDialogue()
 
         if self.chat_state_system:
-            self.chat_state_system.checkAndUpdateState()
+            self.chat_state_system.checkAndUpdateState(event.turn_id)
 
         if self.memory_long:
             handler = getattr(self.memory_long, "process_event", None)

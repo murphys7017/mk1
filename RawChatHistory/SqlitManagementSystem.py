@@ -142,13 +142,29 @@ class SqlitManagementSystem:
         session = self.Session()
         dialogue_model = self.dialogue_message2model(dialogue)
         session.add(dialogue_model)
+        session.flush()
+        dialogue_id = dialogue_model.dialogue_id
         session.commit()
+        session.close()
+        return dialogue_id
     
     def addMessage(self, message: ChatMessage):
         session = self.Session()
         message_model = self.chat_message2model(message)
         session.add(message_model)
+        session.flush()
+        chat_turn_id = message_model.chat_turn_id
         session.commit()
+        session.close()
+        return chat_turn_id
+    
+    def deleteMessageById(self, chat_turn_id: int):
+        session = self.Session()
+        message = session.query(ChatMessageModel).filter(ChatMessageModel.chat_turn_id == chat_turn_id).first()
+        if message:
+            session.delete(message)
+            session.commit()
+        session.close()
 
     def exit(self):
         self.engine.dispose()

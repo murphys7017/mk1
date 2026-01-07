@@ -1,5 +1,7 @@
 
 import time
+
+from loguru import logger
 from LLM.LLMManagement import LLMManagement
 from DataClass.ChatMessage import ChatMessage
 from PerceptionSystem.Analyzeabstract import Analyze
@@ -33,6 +35,8 @@ class TextAnalyze(Analyze):
             options=options,
             input=text
         )
+        logger.debug(f"Text Analysis Response: {data}")
+        # data = None
 
         if data is {} or data is None:
             return {

@@ -59,10 +59,9 @@ class DefaultChatStateSystem(ChatStateSystem):
             self.chat_state = ChatState.from_dict(data)
             self.activated_turn = chat_buffer[0].chat_turn_id
     
-    def checkAndUpdateState(self):
-        current_turn = self.raw_history.getHistory(1)[0].chat_turn_id
-        if current_turn is not None and self.activated_turn is not None:
-            if current_turn - self.activated_turn > self.history_window:
+    def checkAndUpdateState(self, turn_id: int):
+        if turn_id is not None and self.activated_turn is not None:
+            if turn_id - self.activated_turn > self.history_window:
                 self.activate_update_state()
     
     def assemble(self) -> str:

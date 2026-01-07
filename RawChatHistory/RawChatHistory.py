@@ -38,5 +38,7 @@ class RawChatHistory:
 
     def addMessage(self, message: ChatMessage):
         return self.sql_manager.addMessage(message)
+    def deleteMessageById(self, chat_turn_id: int):
+        return self.sql_manager.deleteMessageById(chat_turn_id)
         
     

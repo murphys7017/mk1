@@ -6,10 +6,12 @@ api_key = os.environ.get("OPENAI_API_KEY")
 
 async def main():
     from Agent.QwenClient import QwenClient
+    from Agent.OllamaTest import OllamaClient
     if api_key is None:
         raise ValueError("请设置环境变量 OPENAI_API_KEY")
 
-    client = QwenClient(api_key)
+    # client = QwenClient(api_key)
+    client = OllamaClient()
 
     alice = Alice(client=client)
 

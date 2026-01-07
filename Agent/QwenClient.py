@@ -1,7 +1,9 @@
 from openai import OpenAI
 
+from Agent.Agent import Agent
 
-class QwenClient:
+
+class QwenClient(Agent):
     def __init__(self, api_key: str):
         self.model = "qwen-plus"
         self.temperature = 1.2

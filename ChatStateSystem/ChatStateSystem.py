@@ -20,7 +20,7 @@ class ChatStateSystem(ABC):
     def getState(self) -> ChatState:
         pass
     @abstractmethod
-    def checkAndUpdateState(self):
+    def checkAndUpdateState(self, turn_id: int):
         pass
     @abstractmethod
     def assemble(self) -> str:

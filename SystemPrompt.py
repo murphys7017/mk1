@@ -113,12 +113,12 @@ class SystemPrompt:
 
         仅输出 JSON，不要任何解释或额外文本。使用以下格式：
 
-        {
+        {{
         "is_question": true,
         "is_self_reference": false,
         "mentioned_entities": ["词1", "词2"],
         "emotional_cues": ["词3"]
-        }
+        }}
 
         用户输入：{input}
         """

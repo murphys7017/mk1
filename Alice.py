@@ -1,6 +1,7 @@
 import time
 from typing import Any
 from openai import OpenAI
+from Agent.Agent import Agent
 from ChatStateSystem.DefaultChatStateSystem import DefaultChatStateSystem
 from ChatStateSystem.ChatStateSystem import ChatStateSystem
 from ContextAssembler.DefaultGlobalContextAssembler import DefaultGlobalContextAssembler
@@ -24,7 +25,8 @@ class Alice:
     用户多模态输入 -> 感知系统分析 -> 记忆系统构建消息 -> LLM生成响应 -> 返回响应 -> 更新记忆系统 
 
     """
-    def __init__(self,client, 
+    def __init__(self,
+                 client: Agent, 
                  history_window=20, 
                  dialogue_window=4,
                  min_raw_for_summary=4,
@@ -41,13 +43,7 @@ class Alice:
         self.system_prompt = SystemPrompt()
         self.event_bus = EventBus()
 
-        self.post_tuen_processor = PostTurnProcessor(
-            memory_long= 100,
-            event_bus= self.event_bus,
-            memory_system= self.memory_system, 
-            chat_state_system= self.chat_state_system,
-            raw_history= self.raw_history
-            )
+        
 
 
         self.perception_system = PerceptionSystem(self.llm_management)
@@ -78,6 +74,15 @@ class Alice:
             self.raw_history, self.llm_management
         )
 
+        self.post_tuen_processor = PostTurnProcessor(
+            memory_long= 100,
+            event_bus= self.event_bus,
+            memory_system= self.memory_system, 
+            chat_state_system= self.chat_state_system,
+            raw_history= self.raw_history
+            )
+        
+
 
         self.assembler = DefaultGlobalContextAssembler(
             memory_system=self.memory_system,  # 后续设置
@@ -98,7 +103,10 @@ class Alice:
         """
         return user_inputs[-1]
     async def process_input(self, user_inputs: dict[str, Any]) -> ChatMessage:
+        
+
         messages = await self.perception_system.analyze(user_inputs)
+
         logger.debug(f"Perceived messages: {messages}")
         if messages is None or len(messages) == 0:
             logger.warning("输入分析失败，将使用原始文本输入")
@@ -127,7 +135,7 @@ class Alice:
         user_input = await self.process_input(user_inputs)
 
         # 添加到数据库
-        self.raw_history.addMessage(user_input)
+        user_input_id = self.raw_history.addMessage(user_input)
         logger.debug(f"User input added to history: {user_input}")
 
         # 构建消息
@@ -135,11 +143,19 @@ class Alice:
         logger.debug(f"Built messages for response: {messages}")
 
         # 调用LLM生成响应
-        response = self.client.respond(messages)
+        try:
+            response = self.client.respond(messages)
+        except Exception as e:
+            logger.error(f"Error during LLM response: {e}")
+            default_error_msg = "抱歉，生成响应时出错。请稍后再试。"
+            self.raw_history.deleteMessageById(user_input_id)
+            return default_error_msg
         logger.debug(f"Alice response: {response}")
 
+
+
         # 添加助手响应到数据库
-        self.raw_history.addMessage(ChatMessage(
+        assistant_response_id = self.raw_history.addMessage(ChatMessage(
                 role="assistant", content=response,
                 timestamp=int(round(time.time() * 1000)),
                 timedate=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
@@ -149,7 +165,7 @@ class Alice:
         self.event_bus.publish(
             event_type="ASSISTANT_RESPONSE_GENERATED",
             data=response,
-            turn_id=self.raw_history.getHistory(1)[-1].chat_turn_id
+            turn_id=assistant_response_id
         )
         return response
     
