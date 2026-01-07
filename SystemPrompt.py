@@ -55,8 +55,8 @@ class SystemPrompt:
                 "leading_approach": "str"
             }
         )
-        self.prompt_map['response_guidelines'] = PromptTemplate(
-            name='response_guidelines',
+        self.prompt_map['RESPONSE_PROTOCOL'] = PromptTemplate(
+            name='RESPONSE_PROTOCOL',
             template="""
                     你将接收到一些结构化上下文。
                     它们仅用于你理解情况。

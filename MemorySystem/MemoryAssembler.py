@@ -60,35 +60,6 @@ class MemoryAssembler:
         {summary if summary != "" else "（无）"}
         </{TagType.MEMORY_MID_TAG}>
         """.strip()
-    
-    # def _build_chat_state(self) -> str:
-    #     chat_state = self.strorage.getChatState()
-    #     return f"""
-    #     <{self.CHAT_STATE_TAG}>
-    #     - interaction:{chat_state.interaction}
-    #     - user_attitude:{chat_state.user_attitude}
-    #     - emotional_state:{chat_state.emotional_state}
-    #     - leading_approach:{chat_state.leading_approach}
-    #     - last_message_analysis: {self.raw_history.getHistory(1)[0].getExtra()}
-    #     </{self.CHAT_STATE_TAG}>
-    #     """.strip()
-    
-
-    # def _build_response_guidelines(self) -> str:
-    #     return f"""
-    #     <{self.RESPONSE_PROTOCOL_TAG}>
-    #     你将接收到一些结构化上下文。
-    #     它们仅用于你理解情况。
-
-    #     【绝对规则】
-    #     - 你的回复必须是纯自然语言
-    #     - 不得包含任何 XML、标签、结构化内容
-    #     - 不得重复或模仿输入格式
-    #     - 直接像真人一样说话
-    #     </{self.RESPONSE_PROTOCOL_TAG}>
-    #     """.strip()
-    
-    
 
     
     def assemble(self) -> str:

@@ -20,7 +20,7 @@ class DefaultChatStateSystem(ChatStateSystem):
         llm_management: LLMManagement,
         system_prompt: SystemPrompt,
         # 最大长度
-        history_window: int = 4,
+        history_window: int,
         
     ):
         self.raw_history = raw_history

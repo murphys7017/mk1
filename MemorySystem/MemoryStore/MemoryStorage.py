@@ -5,21 +5,34 @@ from RawChatHistory.RawChatHistory import RawChatHistory
 from MemorySystem.MemoryStore.DialogueStorage import DialogueStorage
 from MemorySystem.MemoryStore.IdentitiyMemory import IdentitiyMemory
 from MemorySystem.MemoryPolicy import MemoryPolicy
-from DataClass.ChatMessage import ChatMessage
-from DataClass.ChatState import ChatState
 from DataClass.DialogueMessage import DialogueMessage
 
 
 class MemoryStorage:
-    def __init__(self,raw_history: RawChatHistory, llm_management: LLMManagement, policy: MemoryPolicy):
+    def __init__(self,
+                # 近期消息窗口（消息轮数）
+                history_window: int,
+                # 近期摘要窗口（摘要条数）
+                summary_window: int,
+                min_raw_for_summary: int,
+                raw_history: RawChatHistory, 
+                llm_management: LLMManagement, 
+                policy: MemoryPolicy):
+        
         self.raw_history = raw_history
         self.identity_memory = IdentitiyMemory()
-        self.dialogue_storage = DialogueStorage(raw_history, llm_management, policy)
+        self.dialogue_storage = DialogueStorage(
+            history_window,
+            summary_window,
+            min_raw_for_summary,
+            raw_history, 
+            llm_management, 
+            policy)
         
 
     def getIdentity(self) -> str:
         return self.identity_memory.getIdentity()
     
-    def getDialogue(self, user_input: ChatMessage) -> list[DialogueMessage]:
-        return self.dialogue_storage.ingestDialogue(user_input)
+    def getDialogue(self) -> list[DialogueMessage]:
+        return self.dialogue_storage.ingestDialogue()
     

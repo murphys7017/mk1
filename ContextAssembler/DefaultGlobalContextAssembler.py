@@ -4,7 +4,10 @@ from ContextAssembler.GlobalContextAssembler import GlobalContextAssembler
 from DataClass.ChatMessage import ChatMessage
 from typing import Any
 
+from DataClass.TagType import TagType
 from MemorySystem.MemorySystem import MemorySystem
+from RawChatHistory import RawChatHistory
+from SystemPrompt import SystemPrompt
 from tools import tools
 
 
@@ -14,17 +17,16 @@ class DefaultGlobalContextAssembler(GlobalContextAssembler):
         self,
         memory_system: MemorySystem,
         chat_state_system: ChatStateSystem,
-        raw_history,
-        response_protocol: str,
-        history_window: int = 20,
-        max_dialogue_summary: int = 3
+        system_prompt: SystemPrompt,
+        raw_history: RawChatHistory,
+        history_window: int,
+       
     ):
         self.memory_system = memory_system
         self.chat_state_system = chat_state_system
-        self.response_protocol = response_protocol
         self.history_window = history_window
-        self.max_dialogue_summary = max_dialogue_summary
         self.raw_history = raw_history
+        self.system_prompt = system_prompt
 
     def build_messages(
         self
@@ -36,6 +38,10 @@ class DefaultGlobalContextAssembler(GlobalContextAssembler):
         prompt = f"""
                 {memory_system_prompt}
                 {chat_state_prompt}
+
+                <{TagType.RESPONSE_PROTOCOL_TAG}>
+                {self.system_prompt.getPrompt(TagType.RESPONSE_PROTOCOL_TAG)}
+                <\{TagType.RESPONSE_PROTOCOL_TAG}>
         """
 
 

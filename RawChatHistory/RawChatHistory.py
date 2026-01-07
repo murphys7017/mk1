@@ -5,9 +5,12 @@ from pathlib import Path
 from loguru import logger
 import os
 
+from RawChatHistory.SqlitManagementSystem import SqlitManagementSystem
+
 class RawChatHistory:
-    def __init__(self,manageer, history_length=100, dialogue_length=10):
-        self.sql_manager = manageer
+    def __init__(self, history_length: int, dialogue_length: int , db_path:str , echo:bool = False):
+
+        self.sql_manager = SqlitManagementSystem(db_path=db_path, echo=echo)
         self.history_length = history_length
         self.dialogue_length = dialogue_length
 
