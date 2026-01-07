@@ -37,6 +37,8 @@ class DefaultChatStateSystem(ChatStateSystem):
                                     )
 
 
+    def getState(self) -> ChatState:
+        return self.chat_state
     
     def activate_update_state(self):
         chat_buffer = self.raw_history.getHistory(self.history_window)

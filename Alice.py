@@ -1,7 +1,7 @@
 import time
 from typing import Any
 from openai import OpenAI
-from ChatStateSystem import DefaultChatStateSystem
+from ChatStateSystem.DefaultChatStateSystem import DefaultChatStateSystem
 from ChatStateSystem.ChatStateSystem import ChatStateSystem
 from ContextAssembler.DefaultGlobalContextAssembler import DefaultGlobalContextAssembler
 from EventBus import EventBus
@@ -40,10 +40,14 @@ class Alice:
         self.llm_management = LLMManagement()
         self.system_prompt = SystemPrompt()
         self.event_bus = EventBus()
+
         self.post_tuen_processor = PostTurnProcessor(
-            
-            self.llm_management, 
-            self.event_bus)
+            memory_long= 100,
+            event_bus= self.event_bus,
+            memory_system= self.memory_system, 
+            chat_state_system= self.chat_state_system,
+            raw_history= self.raw_history
+            )
 
 
         self.perception_system = PerceptionSystem(self.llm_management)
@@ -80,8 +84,7 @@ class Alice:
             chat_state_system=self.chat_state_system,  # 后续设置
             system_prompt=self.system_prompt,
             raw_history=self.raw_history,  # 后续设置
-            history_window=self.history_window,
-            dialogue_window=self.dialogue_window,
+            history_window=self.history_window
         )
 
 
@@ -120,20 +123,33 @@ class Alice:
         """
         生成对用户输入的响应
         """
+        # 处理响应
         user_input = await self.process_input(user_inputs)
+
+        # 添加到数据库
         self.raw_history.addMessage(user_input)
         logger.debug(f"User input added to history: {user_input}")
+
+        # 构建消息
         messages = self.assembler.build_messages()
         logger.debug(f"Built messages for response: {messages}")
 
+        # 调用LLM生成响应
         response = self.client.respond(messages)
         logger.debug(f"Alice response: {response}")
+
+        # 添加助手响应到数据库
         self.raw_history.addMessage(ChatMessage(
                 role="assistant", content=response,
                 timestamp=int(round(time.time() * 1000)),
                 timedate=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                 media_type="text",
                 ))
-        
+        # 触发回合完成事件
+        self.event_bus.publish(
+            event_type="ASSISTANT_RESPONSE_GENERATED",
+            data=response,
+            turn_id=self.raw_history.getHistory(1)[-1].chat_turn_id
+        )
         return response
     

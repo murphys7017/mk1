@@ -6,7 +6,7 @@ from typing import Any
 
 from DataClass.TagType import TagType
 from MemorySystem.MemorySystem import MemorySystem
-from RawChatHistory import RawChatHistory
+from RawChatHistory.RawChatHistory import RawChatHistory
 from SystemPrompt import SystemPrompt
 from tools import tools
 
