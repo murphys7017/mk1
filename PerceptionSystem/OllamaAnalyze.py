@@ -8,20 +8,13 @@ from PerceptionSystem.Analyzeabstract import Analyze
 from SystemPrompt import SystemPrompt
 
 
-class TextAnalyze(Analyze):
+class OllamaAnalyze(Analyze):
     def __init__(self, llm_management: LLMManagement):
         self.llm_management = llm_management
     
-    def analyze(self, input_data: str) -> ChatMessage:
+    def analyze(self, input_data: str) -> dict:
         analysis_results = self.text_analysis(input_data)
-        return ChatMessage(
-            role="user",
-            content=input_data,
-            timestamp=int(round(time.time() * 1000)),
-            timedate=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-            media_type="text",
-            extra=analysis_results
-        )
+        return analysis_results
     
 
     def text_analysis(self, text: str) -> dict:

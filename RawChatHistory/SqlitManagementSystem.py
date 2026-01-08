@@ -54,7 +54,6 @@ class SqlitManagementSystem:
             content=message.content,
             timestamp=message.timestamp,
             timedate=message.timedate,
-            media_type=message.media_type,
             extra=message.extra
         )
     def dialogue_message2model(self, message: DialogueMessage) -> DialogueMessageModel:
@@ -73,7 +72,6 @@ class SqlitManagementSystem:
             content=model.content,
             timestamp=model.timestamp,
             timedate=model.timedate,
-            media_type=model.media_type,
             extra=model.extra
         )
     def dialogue_model2message(self, model: DialogueMessageModel) -> DialogueMessage:

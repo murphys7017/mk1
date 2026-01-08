@@ -95,44 +95,15 @@ class Alice:
 
     
         self.client = client
-
-    def aggregated_input(self, user_inputs: list[ChatMessage]) -> ChatMessage:
-        """
-        简单聚合多个用户输入为一个输入
-        目前仅返回最后一个输入，后续可改为更复杂的聚合逻辑
-        """
-        return user_inputs[-1]
-    async def process_input(self, user_inputs: dict[str, Any]) -> ChatMessage:
-        
-
-        messages = await self.perception_system.analyze(user_inputs)
-
-        logger.debug(f"Perceived messages: {messages}")
-        if messages is None or len(messages) == 0:
-            logger.warning("输入分析失败，将使用原始文本输入")
-            if "text" not in user_inputs:
-                return ChatMessage(
-                    role="system", content="抱歉，我无法理解您的输入。",
-                    timestamp=int(round(time.time() * 1000)),
-                    timedate=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                    media_type="text",
-                    )
-            else:
-                messages = [ChatMessage(
-                    role="user", content=user_inputs["text"],
-                    timestamp=int(round(time.time() * 1000)),
-                    timedate=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                    media_type="text",
-                    )]
-        aggregated_input = self.aggregated_input(messages)
-        return aggregated_input
     
     async def respond(self, user_inputs: dict[str, Any]) -> str:
         """
         生成对用户输入的响应
         """
         # 处理响应
-        user_input = await self.process_input(user_inputs)
+        user_input = await self.perception_system.analyze(user_inputs)
+
+        logger.debug(f"Perceived messages: {user_input}")
 
         # 添加到数据库
         user_input_id = self.raw_history.addMessage(user_input)
@@ -159,7 +130,6 @@ class Alice:
                 role="assistant", content=response,
                 timestamp=int(round(time.time() * 1000)),
                 timedate=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                media_type="text",
                 ))
         # 触发回合完成事件
         self.event_bus.publish(

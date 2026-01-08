@@ -1,6 +1,7 @@
 from typing import Optional, Literal
 from dataclasses import dataclass
 import json
+from typing import Any
 from tools import tools
 @dataclass
 class ChatMessage:
@@ -16,9 +17,11 @@ class ChatMessage:
 	content: str
 	timestamp: int
 	timedate: str
-	media_type:Literal["text","image","audio","video"]
 	extra: Optional[dict] = None
 	chat_turn_id: Optional[int] = None
+	voice: Optional[Any] = None
+	image: Optional[Any] = None
+	video: Optional[Any] = None
 
 	CHAT_TAG = "CHAT_MESSAGE"
 	RAW_TEXT_TAG = "RAW_TEXT"
@@ -26,8 +29,8 @@ class ChatMessage:
 	IS_SELF_REFERENCE_TAG = "IS_SELF_REFERENCE"
 	MENTIONED_ENTITIES_TAG = "MENTIONED_ENTITIES"
 	EMOTIONAL_CUES_TAG = "EMOTIONAL_CUES"
+
 	def buildContentBK(self):
-		if self.media_type=="text":
 			content = f"""
 				<{self.CHAT_TAG}>
 				<{self.RAW_TEXT_TAG}>
@@ -48,18 +51,13 @@ class ChatMessage:
 				</{self.CHAT_TAG}>
 			"""
 			return tools.normalizeBlock(content)
-		else:
-			return tools.normalizeBlock(self.content)
 	
 	def getExtra(self):
 		return self.extra if self.extra else {}
 
 	def buildContent(self):
-		if self.media_type=="text":
-			content = self.content
-			return tools.normalizeBlock(content)
-		else:
-			return tools.normalizeBlock(self.content)
+		return self.content
+
 	
 	def buildMessage(self):
 		return {
@@ -73,7 +71,6 @@ class ChatMessage:
 				"content": self.content,
 				"timestamp": self.timestamp,
 				"timedate": self.timedate,
-				"media_type": self.media_type,
 				"extra": self.extra,
 				"chat_turn_id": self.chat_turn_id
 			}, ensure_ascii=False)
@@ -84,7 +81,6 @@ class ChatMessage:
 			content=data["content"],
 			timestamp=data["timestamp"],
 			timedate=data["timedate"],
-			media_type=data["media_type"],
 			extra=data.get("extra", None),
 			chat_turn_id=data.get("chat_turn_id", None)
 		)
