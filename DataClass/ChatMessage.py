@@ -2,6 +2,7 @@ from typing import Optional, Literal
 from dataclasses import dataclass
 import json
 from typing import Any
+from DataClass.AnalyzeResult import AnalyzeResult
 from tools import tools
 @dataclass
 class ChatMessage:
@@ -22,36 +23,9 @@ class ChatMessage:
 	voice: Optional[Any] = None
 	image: Optional[Any] = None
 	video: Optional[Any] = None
+	analyze_result: Optional[AnalyzeResult] = None
 
-	CHAT_TAG = "CHAT_MESSAGE"
-	RAW_TEXT_TAG = "RAW_TEXT"
-	IS_QUESTION_TAG = "IS_QUESTION"
-	IS_SELF_REFERENCE_TAG = "IS_SELF_REFERENCE"
-	MENTIONED_ENTITIES_TAG = "MENTIONED_ENTITIES"
-	EMOTIONAL_CUES_TAG = "EMOTIONAL_CUES"
 
-	def buildContentBK(self):
-			content = f"""
-				<{self.CHAT_TAG}>
-				<{self.RAW_TEXT_TAG}>
-					{self.content}
-				</{self.RAW_TEXT_TAG}>
-				<{self.IS_QUESTION_TAG}>
-					{self.extra.get("is_question", False) if self.extra else False}
-				</{self.IS_QUESTION_TAG}>
-				<{self.IS_SELF_REFERENCE_TAG}>
-					{self.extra.get("is_self_reference", False) if self.extra else False}
-				</{self.IS_SELF_REFERENCE_TAG}>
-				<{self.MENTIONED_ENTITIES_TAG}>
-					{', '.join(self.extra.get("mentioned_entities", []) ) if self.extra else ''}
-				</{self.MENTIONED_ENTITIES_TAG}>
-				<{self.EMOTIONAL_CUES_TAG}>
-					{', '.join(self.extra.get("emotional_cues", []) ) if self.extra else ''}
-				</{self.EMOTIONAL_CUES_TAG}>
-				</{self.CHAT_TAG}>
-			"""
-			return tools.normalizeBlock(content)
-	
 	def getExtra(self):
 		return self.extra if self.extra else {}
 

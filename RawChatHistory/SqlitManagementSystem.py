@@ -1,168 +1,90 @@
-from sqlalchemy import Column, Integer, String, create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from __future__ import annotations
+from typing import List, Optional
 
-from sqlalchemy import Column, Integer, String, Boolean
-from sqlalchemy.dialects.sqlite import JSON
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
 
 from DataClass.ChatMessage import ChatMessage
 from DataClass.DialogueMessage import DialogueMessage
 
-Base = declarative_base()
-
-
-class ChatMessageModel(Base):
-    __tablename__ = 'chat_messages'
-
-    chat_turn_id = Column(Integer, primary_key=True, autoincrement=True)
-    role = Column(String)
-    content = Column(String)
-    timestamp = Column(Integer)
-    timedate = Column(String)
-    media_type = Column(String)
-    extra = Column(JSON)
-    def __repr__(self):
-        return f"<ChatMessage(chat_turn_id={self.chat_turn_id}, role={self.role}, content={self.content}, timestamp={self.timestamp}, timedate={self.timedate}, media_type={self.media_type}, extra={self.extra})>" 
-	
-
-
-
-class DialogueMessageModel(Base):
-    __tablename__ = 'dialogue_messages'
-
-    dialogue_id = Column(Integer, primary_key=True, autoincrement=True)
-    is_completed = Column(Boolean, default=False)
-    dialogue_turns = Column(Integer)
-    start_turn_id = Column(Integer)
-    end_turn_id = Column(Integer)
-    summary = Column(String)
-
-    def __repr__(self):
-        return f"<DialogueMessage(dialogue_id={self.dialogue_id}, is_completed={self.is_completed}, dialogue_turns={self.dialogue_turns}, start_turn_id={self.start_turn_id}, end_turn_id={self.end_turn_id}, summary={self.summary})>"
+from RawChatHistory.sqlit.ChatCrud import ChatCrud
+from RawChatHistory.sqlit.DialogueCrud import DialogueCrud
 
 
 class SqlitManagementSystem:
-    def __init__(self, db_path: str, echo: bool = True):
+    """
+    Facade 层：
+    - 内部使用 ChatStore / DialogueStore
+    - 自己不碰 ORM
+    """
+
+    def __init__(self, db_path: str, echo: bool = False):
         self.db_path = db_path
-        self.engine = create_engine(f'sqlite:///{self.db_path}', echo=echo)
-        Base.metadata.create_all(self.engine)
-        self.Session = sessionmaker(bind=self.engine)
+        self.engine = create_engine(f"sqlite:///{db_path}", echo=echo, future=True)
 
-    def chat_message2model(self, message: ChatMessage) -> ChatMessageModel:
-        return ChatMessageModel(
-            chat_turn_id=message.chat_turn_id,
-            role=message.role,
-            content=message.content,
-            timestamp=message.timestamp,
-            timedate=message.timedate,
-            extra=message.extra
-        )
-    def dialogue_message2model(self, message: DialogueMessage) -> DialogueMessageModel:
-        return DialogueMessageModel(
-            dialogue_id=message.dialogue_id,
-            is_completed=message.is_completed,
-            dialogue_turns=message.dialogue_turns,
-            start_turn_id=message.start_turn_id,
-            end_turn_id=message.end_turn_id,
-            summary=message.summary
-        )
-    def chat_model2message(self, model: ChatMessageModel) -> ChatMessage:
-        return ChatMessage(
-            chat_turn_id=model.chat_turn_id,
-            role=model.role,
-            content=model.content,
-            timestamp=model.timestamp,
-            timedate=model.timedate,
-            extra=model.extra
-        )
-    def dialogue_model2message(self, model: DialogueMessageModel) -> DialogueMessage:
-        return DialogueMessage(
-            dialogue_id=model.dialogue_id,
-            is_completed=model.is_completed,
-            dialogue_turns=model.dialogue_turns,
-            start_turn_id=model.start_turn_id,
-            end_turn_id=model.end_turn_id,
-            summary=model.summary
+        self.SessionLocal = sessionmaker(
+            bind=self.engine,
+            class_=Session,
+            expire_on_commit=False,
         )
 
-    # def load_history(self):
-    #     session = self.Session()
-    #     chat_messages = session.query(ChatMessageModel).order_by(ChatMessageModel.chat_turn_id.desc()).limit(self.history_length).all()
-    #     dialogue_messages = session.query(DialogueMessageModel).order_by(DialogueMessageModel.dialogue_id.desc()).limit(self.history_length).all()
-        
-    #     return chat_messages, dialogue_messages
-    
+        # 两个 store
+        self.chat_store = ChatCrud(self.engine, self.SessionLocal)
+        self.dialogue_store = DialogueCrud(self.engine, self.SessionLocal)
+
+        # 建表
+        self.chat_store.create_tables()
+
+    # =====================
+    # ChatMessage
+    # =====================
     def getHistoryLength(self) -> int:
-        session = self.Session()
-        count = session.query(ChatMessageModel).count()
-        session.close()
-        return count
-    
-    def getHistory(self,length) -> list[ChatMessage]:
-        session = self.Session()
-        chatMs = session.query(ChatMessageModel).order_by(ChatMessageModel.chat_turn_id.desc()).limit(length).all()
-        session.close()
-        chat = []
-        for chatM in chatMs:
-            chat.append(self.chat_model2message(chatM))
-        chat_messages = list(reversed(chat))
-        
-        return chat_messages
-    
-    def getDialogues(self, length: int) -> list[DialogueMessage]:
-        session = self.Session()
-        dialogueMs = session.query(DialogueMessageModel).order_by(DialogueMessageModel.dialogue_id.desc()).limit(length).all()
-        session.close()
-        dialogue = []
-        for dialogueM in dialogueMs:
-            dialogue.append(self.dialogue_model2message(dialogueM))
-        dialogue_messages = list(reversed(dialogue))
-        return dialogue_messages
-    
-    def getDialoguesById(self, dialogue_id: int) -> DialogueMessage:
-        session = self.Session()
-        dialogue = session.query(DialogueMessageModel).filter(DialogueMessageModel.dialogue_id == dialogue_id).first()
-        session.close()
-        return self.dialogue_model2message(dialogue)
-    
-    def updateDialogue(self, dialogue: DialogueMessage):
-        session = self.Session()
-        existing_dialogue = session.query(DialogueMessageModel).filter(DialogueMessageModel.dialogue_id == dialogue.dialogue_id).first()
-        if existing_dialogue:
-            existing_dialogue.is_completed = dialogue.is_completed
-            existing_dialogue.dialogue_turns = dialogue.dialogue_turns
-            existing_dialogue.start_turn_id = dialogue.start_turn_id
-            existing_dialogue.end_turn_id = dialogue.end_turn_id
-            existing_dialogue.summary = dialogue.summary
-            session.commit()
-        session.close()
-    
-    def addDialogue(self, dialogue: DialogueMessage):
-        session = self.Session()
-        dialogue_model = self.dialogue_message2model(dialogue)
-        session.add(dialogue_model)
-        session.flush()
-        dialogue_id = dialogue_model.dialogue_id
-        session.commit()
-        session.close()
-        return dialogue_id
-    
-    def addMessage(self, message: ChatMessage):
-        session = self.Session()
-        message_model = self.chat_message2model(message)
-        session.add(message_model)
-        session.flush()
-        chat_turn_id = message_model.chat_turn_id
-        session.commit()
-        session.close()
-        return chat_turn_id
-    
-    def deleteMessageById(self, chat_turn_id: int):
-        session = self.Session()
-        message = session.query(ChatMessageModel).filter(ChatMessageModel.chat_turn_id == chat_turn_id).first()
-        if message:
-            session.delete(message)
-            session.commit()
-        session.close()
+        """消息总数"""
+        msgs = self.chat_store.list_messages(limit=1_000_000, with_analyze=False)
+        return len(msgs)
 
+    def getHistory(self, length: int) -> List[ChatMessage]:
+        return self.chat_store.list_messages(
+            limit=length,
+            order_desc=True,
+            with_analyze=True,
+        )[::-1]
+
+    def addMessage(self, message: ChatMessage) -> int:
+        return self.chat_store.insert_message(message)
+
+    def deleteMessageById(self, chat_turn_id: int):
+        self.chat_store.delete_message(chat_turn_id)
+
+    # =====================
+    # Dialogue
+    # =====================
+    def getDialogues(self, length: int) -> List[DialogueMessage]:
+        return self.dialogue_store.list(limit=length)[::-1]
+
+    def getDialoguesById(self, dialogue_id: int) -> Optional[DialogueMessage]:
+        return self.dialogue_store.get(dialogue_id)
+
+    def updateDialogue(self, dialogue: DialogueMessage):
+        if dialogue.dialogue_id is None:
+            return
+
+        # summary
+        self.dialogue_store.update_summary(
+            dialogue.dialogue_id,
+            dialogue.summary,
+        )
+
+        # completed
+        if dialogue.is_completed and dialogue.end_turn_id is not None:
+            self.dialogue_store.mark_completed(
+                dialogue.dialogue_id,
+                dialogue.end_turn_id,
+            )
+
+    def addDialogue(self, dialogue: DialogueMessage) -> int:
+        return self.dialogue_store.create(dialogue)
+
+    # =====================
     def exit(self):
         self.engine.dispose()

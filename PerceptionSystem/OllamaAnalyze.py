@@ -2,6 +2,7 @@
 import time
 
 from loguru import logger
+from DataClass.AnalyzeResult import AnalyzeResult
 from LLM.LLMManagement import LLMManagement
 from DataClass.ChatMessage import ChatMessage
 from PerceptionSystem.Analyzeabstract import Analyze
@@ -12,12 +13,12 @@ class OllamaAnalyze(Analyze):
     def __init__(self, llm_management: LLMManagement):
         self.llm_management = llm_management
     
-    def analyze(self, input_data: str) -> dict:
+    def analyze(self, input_data: str) -> AnalyzeResult:
         analysis_results = self.text_analysis(input_data)
         return analysis_results
     
 
-    def text_analysis(self, text: str) -> dict:
+    def text_analysis(self, text: str) -> AnalyzeResult:
         """
         使用 1.7B 文本分析模型（Ollama）
         """
@@ -30,13 +31,14 @@ class OllamaAnalyze(Analyze):
         )
         logger.debug(f"Text Analysis Response: {data}")
         # data = None
+        res = AnalyzeResult()
+        if data is None :
+            return res
+        
+        res.raw["ollama_text_analysis"] = data
+        res.is_question = data.get("is_question", None)
+        res.is_self_reference = data.get("is_self_reference", None)
+        res.emotion_cues = data.get("emotional_cues", [])
+        
+        return res
 
-        if data is {} or data is None:
-            return {
-                "is_question": False,
-                "is_self_reference": False,
-                "mentioned_entities": [],
-                "emotional_cues": []
-            }
-        else:
-            return data

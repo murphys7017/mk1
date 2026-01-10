@@ -1,5 +1,6 @@
 import json
-from DataClass.ChatMessage import ChatMessage, DialogueMessage
+from DataClass.ChatMessage import ChatMessage
+from DataClass.DialogueMessage import DialogueMessage
 from pathlib import Path
 from loguru import logger
 import os

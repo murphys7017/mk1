@@ -1,5 +1,6 @@
 import time
 from typing import Any
+from DataClass.AnalyzeResult import AnalyzeResult
 from LLM.LLMManagement import LLMManagement
 from DataClass.ChatMessage import ChatMessage
 from PerceptionSystem.LtpAnalyze import LtpAnalyze
@@ -70,13 +71,10 @@ class PerceptionSystem:
             try:
                 # done 的 future 不需要 await，用 result() 更直观
                 results.append(t.result())
-                for key, value in t.result().items():
-                    if message.extra is None:
-                        message.extra = {}
-                    message.extra[key] = value
             except Exception as e:
                 logger.exception(f"Analyzer task failed: {e}")
-
+        merged_result = AnalyzeResult.merge_analyze_results(results)
+        message.analyze_result = merged_result
         logger.debug(f"PerceptionSystem.analyze results: {results}")
         return message
 
