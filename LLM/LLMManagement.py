@@ -1,5 +1,5 @@
 from LLM.QwenFormated import QwenFormated
-from LLM.Ollama import Ollama
+from LLM.OllamaFormated import Ollama
 from SystemPrompt import SystemPrompt
 from loguru import logger
 from DataClass.PromptTemplate import PromptTemplate

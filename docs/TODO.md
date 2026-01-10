@@ -1,6 +1,6 @@
 # TODO 任务清单
 
-### 2026年1月6日 时间14:30:00
+## 2026年1月6日 时间14:30:00
 
 - [ ] 将输入和输出分开，做到可以多次输入，然后ai看情况输出
   - [ ] 实现类似管线化或者其他的方式
@@ -9,12 +9,20 @@
 
 
 
-### 2026年1月8日 02点54分
+## 2026年1月8日 02点54分
 
-- [ ] 修改ChatMessage、PerceptionSystem等添加对多模态的支持创建AnalysisResult类，ChatMessage的content只是文本，新加属性等
-- [ ] ltp安装完成为PerceptionSystem添加ltp分析
-- [ ] 将分析结果体现在prompt中，而非message
-- [ ] 添加标签语义说明
+- [ ] 修改ChatMessage、PerceptionSystem等添加对多模态的支持创建AnalysisResult类，ChatMessage的content只是文本，新加属性等（已完成：AnalyzeResult/字段预留/SQLite 持久化；未完成：图片/音频/视频分析器与端到端接线）
+- [x] ltp安装完成为PerceptionSystem添加ltp分析
+- [ ] 将分析结果体现在prompt中，而非message（当前 AnalyzeResult 已写入 message/DB，但尚未注入 prompt）
+- [x] 添加标签语义说明（TagType + ResponseProtocol + 语义说明草案）
+
+## 2026年1月11日
+
+- [ ] 修复/统一 LLMManagement 的 `model_map` 与 `llm_map`（例如 `generate_response -> qwen-plus` 的映射）
+- [ ] 明确“结构化 JSON 输出”与“自然语言回复”两条调用链（避免 QwenFormated 强制 JSON 影响回复生成）
+- [ ] 清理 `MessageModel.py` 与 `DataClass/` 的并存状态（确定唯一数据模型来源并迁移）
+
+NOTE: `python-dotenv` 已补齐（或已移除），相关依赖与 `.env` 使用已处理并加入 .gitignore。
 
 ~~~json
 {
