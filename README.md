@@ -1,22 +1,8 @@
-# mk1 智能体系统
-## 目前刚启动开发、未经过测试
-## 项目简介
-
-mk1 是一个具备“感知-记忆-推理-行动”完整认知闭环的智能体原型，支持多轮对话、长期记忆、摘要、遗忘等能力，目标是实现可持续成长、可自我调节的 AI 角色。
-
-## 主要模块结构
-
-- **PerceptionSystem**：负责输入文本的分析（如问题识别、实体提取、情感线索等），输出结构化 ChatMessage。
-- **DateClass**：定义了 ChatMessage（单轮消息）、DialogueMessage（对话摘要）等核心数据结构。
-- **RawChatHistory**：管理原始对话历史和摘要历史，支持文件持久化与追加写入。
-- **DialogueStorage**：负责原始对话的缓冲、摘要生成与管理，集成本地/云端模型进行摘要与裁判。
-- **MemoryStorage/MemoryAssembler/MemorySystem**：聚合 identity、对话摘要、近期对话，组装成 LLM 可用的 messages。
-- **Aice (Alice)**：顶层智能体，集成感知、记忆、推理、行动，负责与用户交互。
 # mk1 — Alice 智能体系统
 
 轻量原型，目标是实现一个可持续成长的对话智能体：感知 → 记忆 → 推理 → 行动 → 记忆更新。
 
-注意：项目处于开发中，部分模块为重构/接入阶段，参考 `docs/` 中的设计文档以获得更详细信息。
+当前代码已迁移为 `src/` layout（核心模块在 `src/` 下），并引入 Prompt 构建系统用于可组合地拼装 system prompt。
 
 ---
 
@@ -28,51 +14,59 @@ mk1 是一个具备“感知-记忆-推理-行动”完整认知闭环的智能�
 uv sync
 ```
 
-2. 在项目根目录创建 `.env`（可选）并填入你的 API Key：
+1. 在项目根目录创建 `.env`（可选）并填入你的 API Key：
 
 ```text
 OPENAI_API_KEY=sk-...
 # 或者在 shell 中导出环境变量
 ```
 
-3. 运行程序：
+1. 运行程序：
 
 ```bash
 uv run .\main.py
 ```
 
-4. 交互：在命令行输入文本与 Alice 对话；输入 `退出` 结束会话。
+1. 交互：在命令行输入文本与 Alice 对话；输入 `退出` 结束会话。
 
 ---
 
-## 本次更新要点
+## 当前主链路（概览）
 
-- `main.py` 已改为从环境变量读取 `OPENAI_API_KEY`（支持 `.env`）。
-- `PerceptionSystem` 已并发化（`asyncio` + executor），输入协议统一为 `{"text": "..."}`。
-- 引入 `LLM/` 目录以统一管理 Ollama / Qwen（云端）调用。
-- `ContextAssembler/DefaultGlobalContextAssembler` 已能把 `MemorySystem.assemble()` 与 `ChatStateSystem.assemble()` 合并为 system prompt。
-- `summarize_dialogue` 参数名问题已修复（`summary_text` / `dialogues_text` 对齐）。
+- `main.py` 读取 `.env`/环境变量 → `Alice.respond()`
+- `PerceptionSystem` 并发分析：OllamaAnalyze + LTP → 合并为 `AnalyzeResult`
+- 写入 SQLite 历史（支持 `AnalyzeResult` 关联）
+- `DefaultGlobalContextAssembler` 用 PromptBuilder 组装 system prompt（Memory + ChatState + Analyze + ResponseProtocol）并拼接 recent history
+- `LLMManagement.chat()` 走本地 Ollama chat 生成回复；回合后通过 EventBus 触发摘要/状态更新
 
 ---
 
 ## 项目结构概览
 
 - `main.py` — 启动脚本、异步交互入口
-- `Alice.py` — 顶层编排器（感知 → 记忆 → 组装 → LLM → 更新历史）
-- `PerceptionSystem/` — 分析器注册与并发执行（目前包含 `text`）
-- `DataClass/` — 领域模型（`ChatMessage`, `DialogueMessage`, `ChatState`, `PromptTemplate`, 等）
-- `MemorySystem/` — 记忆策略、存储、组装（`MemoryPolicy`, `MemoryAssembler`, `MemoryStore`）
-- `RawChatHistory/` — 历史持久化（SQLite / 文件）
-- `LLM/` — LLM 抽象与具体实现（`Ollama`, `QwenFormated`, `LLMManagement`）
-- `ContextAssembler/` — 全局 messages 组装器（system prompt + recent messages）
-- `ChatStateSystem/` — 对话状态判断与 assemble 接口（默认实现在 `DefaultChatStateSystem.py`）
+- `src/Alice.py` — 顶层编排器（感知 → 记忆 → 组装 → LLM → 更新历史）
+- `src/PerceptionSystem/` — 分析器注册与并发执行（OllamaAnalyze + LTP）
+- `src/DataClass/` — 领域模型（`ChatMessage`, `AnalyzeResult`, `DialogueMessage`, `ChatState`, `PromptTemplate` 等）
+- `src/MemorySystem/` — 记忆策略、存储、组装（`MemoryPolicy`, `MemoryAssembler`, `MemoryStore`）
+- `src/RawChatHistory/` — 历史持久化（SQLite / 文件）
+- `src/LLM/` — LLM 抽象与实现（`OllamaFormated`, `OllamaChat`, `LLMManagement`）
+- `src/ContextAssembler/` — 全局 messages 组装器（PromptBuilder + recent history）
+- `src/ChatStateSystem/` — 对话状态判定与 assemble
+- `src/tools/` — PromptBuilder、normalize 工具等
+- `tests/` — 基础单测
 - `docs/` — 设计文档、TODO、项目总结、收尾清单
 
 ---
 
 ## 常见问题与提示
 
-- 如果 LLM 不能正确生成摘要或决策：请确认 `SystemPrompt` 的 `PromptTemplate.required_fields` 与 `LLMManagement.generate()` 的命名一致（项目现在已修复 `summarize_dialogue` 的命名不一致问题）。
+- 如果结构化生成（摘要/裁判）输出为空：请确认 `SystemPrompt` 的 `PromptTemplate.required_fields` 与 `LLMManagement.generate()` 传参名一致。
+
+## 运行测试
+
+```bash
+uv run pytest
+```
 
 ---
 
@@ -87,7 +81,8 @@ uv run .\main.py
 
 ---
 
-如需更详细的设计说明、模块间调用序列图或部署说明，请查看 `docs/项目总结.md` 与 `docs/集成收尾问题清单.md`。欢迎告诉我是否要我：
+更详细的设计说明与进展：
 
-- 把 `DefaultGlobalContextAssembler` 注入 `Alice.respond()` 并完成主链路（我可以直接修改并跑一次静态检查）；
-- 或者将 `python-dotenv` 添加到 `pyproject.toml` 的依赖中。
+- `docs/项目总结.md`
+- `docs/阶段进展-2026-01-13.md`
+- `docs/集成收尾问题清单.md`

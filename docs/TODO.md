@@ -13,16 +13,22 @@
 
 - [ ] 修改ChatMessage、PerceptionSystem等添加对多模态的支持创建AnalysisResult类，ChatMessage的content只是文本，新加属性等（已完成：AnalyzeResult/字段预留/SQLite 持久化；未完成：图片/音频/视频分析器与端到端接线）
 - [x] ltp安装完成为PerceptionSystem添加ltp分析
-- [ ] 将分析结果体现在prompt中，而非message（当前 AnalyzeResult 已写入 message/DB，但尚未注入 prompt）
+- [x] 将分析结果体现在prompt中，而非message（已完成：AnalyzeResult 以轻量信号注入 system prompt，同时仍会落库）
 - [x] 添加标签语义说明（TagType + ResponseProtocol + 语义说明草案）
 
 ## 2026年1月11日
 
-- [ ] 修复/统一 LLMManagement 的 `model_map` 与 `llm_map`（例如 `generate_response -> qwen-plus` 的映射）
-- [ ] 明确“结构化 JSON 输出”与“自然语言回复”两条调用链（避免 QwenFormated 强制 JSON 影响回复生成）
-- [ ] 清理 `MessageModel.py` 与 `DataClass/` 的并存状态（确定唯一数据模型来源并迁移）
+- [x] 修复/统一 LLMManagement 的 `model_map` 与 `llm_map`（已重构为 `generate()`/`chat()` 双入口）
+- [x] 明确“结构化 JSON 输出”与“自然语言回复”两条调用链（OllamaFormated vs OllamaChat）
+- [x] 清理数据模型并存状态（`MessageModel.py` 已移除，统一使用 `src/DataClass/`）
 
 NOTE: `python-dotenv` 已补齐（或已移除），相关依赖与 `.env` 使用已处理并加入 .gitignore。
+
+## 2026年1月13日
+
+- [x] 目录结构重构为 `src/` layout，并补充基础测试用例（PromptBuilder/normalize/ltp/AnalyzeResult merge 等）
+- [x] 引入 Prompt 构建系统（PromptBuilder + PromptNode），支持 include/extend/tag/container 的组合式拼装
+- [ ] 清理/确认 import 风格与包结构一致性（避免“直接运行 vs 安装为包”时导入差异）
 
 ~~~json
 {
