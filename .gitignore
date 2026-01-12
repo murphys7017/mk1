@@ -12,3 +12,4 @@ raw_chat_history.txt
 dialogue_history.txt
 .env
 PerceptionSystem/ltp/
+src/PerceptionSystem/ltp
