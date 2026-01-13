@@ -23,7 +23,7 @@ class MemoryPolicy:
             dialogue_turns=dialogue_turns
         )
         logger.debug(f"Split Buffer By Topic Response: {data}")
-        return data.get("index", 0)
+        return int(data.get("continuation_turns", 0))
     
 
     def judgeDialogueSummary(

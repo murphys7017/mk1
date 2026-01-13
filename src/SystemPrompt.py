@@ -12,7 +12,7 @@ class SystemPrompt:
             name='split_buffer_by_topic_continuation',
             template=SystemPrompt.split_buffer_by_topic_continuation_prompt(),
             required_fields=["current_summary", "dialogue_turns"],
-            output_schema={"index": "int"}
+            output_schema={"continuation_turns": "int"}
         )
         self.prompt_map['text_analysis'] = PromptTemplate(
             name='text_analysis',
@@ -39,10 +39,10 @@ class SystemPrompt:
             template=SystemPrompt.summarize_dialogue_prompt(),
             required_fields=["summary_text", "dialogues_text"],
             output_schema={
-                "summary_id": "str",
-                "summary_content": "str",
-                "action": "str"
-            }
+                            "action": "str",
+                            "summary_id": "int|null",
+                            "summary_content": "str"
+                            }
         )
         self.prompt_map['judge_chat_state'] = PromptTemplate(
             name='judge_chat_state',
@@ -89,7 +89,10 @@ class SystemPrompt:
     @staticmethod
     def split_buffer_by_topic_continuation_prompt():
         return """
-你是一个对话连贯性分析器。请判断新对话轮次中有多少轮延续了已有摘要的话题。
+你是一个对话连贯性分析器。
+
+任务：给定【已有摘要】与【新对话轮次】，判断新对话中“从第0轮开始”有多少轮仍然在延续已有摘要的话题。
+注意：只统计“连续的前缀轮次”，一旦某一轮开始明显转到新话题，就必须停止计数。
 
 【已有摘要】
 {current_summary}
@@ -97,15 +100,19 @@ class SystemPrompt:
 【新对话轮次】（从第0轮开始编号）
 {dialogue_turns}
 
-请回答：最多前几轮属于同一话题？
-请严格按以下规则作答：
-- 判断从第0轮开始，最多连续多少轮属于与已有摘要相同的话题。
-- 返回一个非负整数 x，满足 0 ≤ x ≤ 新对话轮次总数。
+判定规则（严格执行）：
+- continuation_turns = 从第0轮开始，连续延续同一话题的轮数（数量，不是索引）。
+- 若第0轮就不延续已有摘要话题，则 continuation_turns = 0。
+- 只要出现新话题/新目标/新问题且不依赖已有摘要上下文，就视为“话题断开”，后面的轮次不再计入。
+- 如果一轮内容同时包含旧话题和新话题：只要新话题占主导，就视为断开。
 
-只输出一个 JSON 对象，格式为：
-{{"index": x}}
-不要包含任何其他文字、空格、换行、注释或 markdown。
+输出要求：
+- 只输出一个 JSON 对象
+- 不要输出任何解释、额外文本、空格、换行、注释、markdown
 
+输出格式：
+{{"continuation_turns": x}}
+其中 x 为整数，满足 0 ≤ x ≤ 新对话轮次总数。
 """
     @staticmethod
     def text_analysis_model():
@@ -182,74 +189,67 @@ class SystemPrompt:
     @staticmethod
     def summarize_dialogue_prompt():
         return """
-            你是一个【阶段性对话摘要系统】。
+你是一个【阶段性对话摘要系统】。
 
-            你的任务是：
-            在对话达到一个自然阶段结束点时，
-            将该阶段的对话内容压缩为一条【可长期保存的事实性摘要】，
-            用于替代原始对话记录。
+你的任务是把“未摘要对话片段”压缩成一条可长期保存的客观摘要，并决定：
+- 这是更新某条已有摘要（update）
+- 还是创建一条新摘要（new）
 
-            你将收到：
-            1. 若干条【已有摘要】，每条包含：
-            - summary_id
-            - summary_content
-            2. 一段【需要进行摘要的对话内容】
-            格式为：- [summary_id]dialogue_id[summary_content]summary
+你必须遵守：
+- 不编造、不过度推断、不添加未出现的信息
+- 不保留原对话原文（不要逐句复述）
+- 使用第三人称、客观中性、简洁
+- 只输出 JSON，不要任何解释或额外文本
 
-            你的职责是：
-            - 判断当前对话内容是否属于某一条已有摘要的同一主题阶段
-            - 如果属于：
-            - 在该摘要基础上进行补充或更新
-            - 如果不属于任何已有摘要：
-            - 生成一条新的摘要
+你将收到：
+1) 【已有摘要】列表（可能为空），格式为多行：
+- [summary_id]123:[summary_content]...
+2) 【未摘要对话】（本次需要压缩的对话片段）
 
-            ────────────────
-            【重要规则】
-            - 本摘要用于“对话历史压缩”，不是人格、状态或心理分析
-            - 只记录已经发生且不会改变的事实
-            - 不推断未来行为
-            - 不预测用户意图
-            - 不保留互动语气或角色扮演风格
+—— 关键判定规则 ——
+A. 何时选择 update：
+- 未摘要对话主要是在“延续/补充/修正”已有摘要中的同一主题/阶段
+- 例如：同一个项目/同一个决定/同一条偏好/同一段计划的推进
+- 选择 update 时：你必须从【已有摘要】里选择且仅选择一条 summary_id 来更新
 
-            【关于已有摘要的使用】
-            - 如果当前对话与某一条已有摘要属于同一主题或阶段：
-            - 只更新这一条摘要
-            - 不修改其他摘要
-            - 如果当前对话明显开启了新的主题或阶段：
-            - 创建一条新的摘要
-            - 不修改任何已有摘要
+B. 何时选择 new：
+- 未摘要对话明显开启了新的主题/阶段
+- 或与任何已有摘要都不属于同一主题
+- 或【已有摘要为空】
+- 选择 new 时：summary_id 必须为 null（由系统/数据库生成新 id）
 
-            【必须保留的信息（仅当明确出现）】
-            - 稳定讨论的主题
-            - 明确表达的用户偏好或否定
-            - 明确发生的关系变化
-            - 明确的目标、约定或未完成事项
-            - 明显且持续的情绪倾向（仅当多轮体现）
+—— 输出字段约束（必须严格执行） ——
+你必须输出且仅输出一个 JSON 对象，包含以下字段：
+{
+  "action": "update" | "new",
+  "summary_id": <整数或 null>,
+  "summary_content": "<更新后的完整摘要内容>"
+}
 
-            【必须避免】
-            - 不记录调侃、语气、角色扮演细节
-            - 不记录临时情绪或玩笑
-            - 不包含任何对话原文
-            - 不编造未出现的信息
+约束 1：当 action = "new" 时，summary_id 必须是 null。
+约束 2：当 action = "update" 时，summary_id 必须是【已有摘要】中出现过的某一个整数 id（原样返回，不要修改、不要创造）。
+约束 3：summary_content 必须是“完整摘要”（不是增量补丁），长度建议 1~6 句，内容以事实为主。
 
-            ────────────────
-            【输出要求】
-            - 使用第三人称
-            - 中性、客观、简洁
-            - 仅输出 JSON
-            - 不附加解释性文字
+—— 内容要求（仅当明确出现时才写入） ——
+- 稳定讨论的主题/项目/任务
+- 明确的用户偏好或否定
+- 明确的目标、约定、未完成事项
+- 重要的关系变化或长期设定（如果明确出现）
+- 持续多轮体现的情绪倾向（仅当多轮明显且稳定）
 
-            【输出 JSON 格式】
-            {{
-            "summary_id": "<被更新的摘要 id，或新生成的 id>",
-            "summary_content": "<更新后的完整摘要内容>",
-            "action": "update" | "new"
-            }}
-            【已有摘要】
-            {summary_text}
-            【未摘要对话】
-            {dialogues_text}
+—— 必须避免 ——
+- 调侃、角色扮演语气、临时情绪玩笑
+- 预测未来、推测动机
+- 不要输出对话原句
+- 不要输出 XML / markdown / 代码块
 
+【已有摘要】
+{summary_text}
+
+【未摘要对话】
+{dialogues_text}
+
+只输出 JSON 对象，不要包含任何其他文字、空格、换行或注释。
         """
 
 

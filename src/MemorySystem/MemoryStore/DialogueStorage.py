@@ -2,6 +2,7 @@ from typing import List
 
 from loguru import logger
 
+from DataClass.DialogueDecision import DecisionType, SummaryDecision
 from LLM.LLMManagement import LLMManagement
 from RawChatHistory.RawChatHistory import RawChatHistory
 from DataClass.ChatMessage import ChatMessage
@@ -48,27 +49,104 @@ class DialogueStorage:
     # ---------- 基础入口 ----------
 
     def ingestDialogue(self) -> List[DialogueMessage]:
-        """
-        刷新窗口内的已摘要/未摘要消息，并按策略判断是否需要生成摘要。
-        返回近期摘要列表。
-        """
         self._refresh_buffers()
 
-        split_index = self.should_consider_summarize(
+        decision = self.should_consider_summarize(
             self.summarized_messages,
             self.unsummarized_messages,
             self.recent_summaries,
         )
 
-        if split_index >= 0 and self.unsummarized_messages:
-            min_index = min(self.min_raw_for_summary - 1, len(self.unsummarized_messages) - 1)
+        logger.info(
+            f"[DialogueStorage] decision={decision.type} action={decision.summary_action} "
+            f"split_index={decision.split_index} reason={decision.reason}"
+        )
+
+        if decision.type is DecisionType.SUMMARIZE and self.unsummarized_messages:
+            split_index = decision.split_index
+            if split_index is None:
+                logger.error("split_index is None for SUMMARIZE decision, skipping summarization")
+                return self.recent_summaries
+
+            max_index = len(self.unsummarized_messages) - 1
+            if split_index > max_index:
+                logger.error(f"split_index out of range: {split_index} > {max_index}")
+                logger.warning(f"调整 split_index：{split_index} -> {max_index}")
+                split_index = max_index
+
+            min_index = min(self.min_raw_for_summary - 1, max_index)
             split_index = max(split_index, min_index)
+
             self.apply_summary_decision(split_index)
             self._refresh_buffers()
 
         return self.recent_summaries
 
+
     def should_consider_summarize(
+        self,
+        summarized_messages: List[ChatMessage],
+        unsummarized_messages: List[ChatMessage],
+        recent_summaries: List[DialogueMessage],
+    ) -> SummaryDecision:
+        if len(unsummarized_messages) < self.min_raw_for_summary:
+            return SummaryDecision(
+                type=DecisionType.WAIT,
+                reason=f"unsummarized<{self.min_raw_for_summary}",
+                summary_action=None,
+            )
+
+        summary_text = self._build_summary_text(recent_summaries)
+        buffer_text = self._build_dialogue_text(
+            summarized_messages, unsummarized_messages, include_summarized=True
+        )
+
+        judge = self.policy.judgeDialogueSummary(summary_text, buffer_text)
+        need = bool(judge.get("need_summary", False))
+        action = (judge.get("summary_action") or "none").strip()
+
+        if (not need) or action == "none":
+            return SummaryDecision(
+                type=DecisionType.SKIP,
+                reason=f"judge need_summary={need}, summary_action={action}",
+                summary_action="none",
+            )
+
+        # action == "new"：无需 split，直接尽快生成新摘要（覆盖到末尾）
+        if action == "new":
+            return SummaryDecision(
+                type=DecisionType.SUMMARIZE,
+                reason="judge summary_action=new",
+                summary_action="new",
+                split_index=len(unsummarized_messages) - 1,
+            )
+
+        # action == "merge"：A 方案：splitBufferByTopic 返回 continuation_turns（数量）
+        x = self.policy.splitBufferByTopic(
+            current_summary=summary_text,
+            dialogue_turns=buffer_text,
+        )
+
+        if x <= 0:
+            # merge 但没有延续：降级为 new（更符合直觉：新话题开了）
+            return SummaryDecision(
+                type=DecisionType.SUMMARIZE,
+                reason="merge requested but continuation_turns=0 -> degrade to new",
+                summary_action="new",
+                split_index=len(unsummarized_messages) - 1,
+            )
+
+        # count -> index
+        split_index = x - 1
+        return SummaryDecision(
+            type=DecisionType.SUMMARIZE,
+            reason=f"merge continuation_turns={x}",
+            summary_action="merge",
+            split_index=split_index,
+        )
+
+    
+    def should_consider_summarize_bk(
         self,
         summarized_messages: List[ChatMessage],
         unsummarized_messages: List[ChatMessage],
@@ -94,9 +172,11 @@ class DialogueStorage:
         if temp_action.get("need_summary"):
             split_index = self.policy.splitBufferByTopic(
                 summary_text,
-                self._build_dialogue_text(summarized_messages, unsummarized_messages, include_summarized=True)
+                buffer_text
             )
-            return split_index
+            if split_index <= 0:
+                return -1
+            return split_index - 1
 
         return -2
 
@@ -113,9 +193,7 @@ class DialogueStorage:
             self.unsummarized_messages[: action + 1],
             self.summarized_messages,
         )
-        if summary_res["summary_id"] == -1:
-            logger.warning("摘要模型未返回有效摘要ID，跳过摘要操作")
-            return
+        
 
         logger.info(f"生成摘要结果：{summary_res}")
         if summary_res["action"] == "new":
@@ -129,11 +207,16 @@ class DialogueStorage:
             )
             self.raw_history.addDialogues(current_dialogue)
         elif summary_res["action"] == "update":
+            if summary_res["summary_id"] == -1:
+                logger.warning("摘要模型未返回有效摘要ID，跳过摘要操作")
+                return
+        
             dialogue = summary_res["dialogue"]
             dialogue.summary = summary_res["summary_content"]
             dialogue.end_turn_id = current_message.chat_turn_id
             dialogue.dialogue_turns = action + 1
             self.raw_history.updateDialogue(dialogue)
+        
 
     def summarize_dialogue(
         self,
@@ -161,6 +244,11 @@ class DialogueStorage:
         )
 
         dialogue_id = data.get("summary_id", None)
+        try:
+            dialogue_id = int(dialogue_id) if dialogue_id is not None else None
+        except (TypeError, ValueError):
+            dialogue_id = None
+
         if dialogue_id:
             dialogue = self.raw_history.getDialogueById(dialogue_id)
             if dialogue is not None:
@@ -180,7 +268,7 @@ class DialogueStorage:
 
         return {
             "summary_id": -1,
-            "summary_content": summary_text,
+            "summary_content": "（无）",
             "action": "new"
         }
 
