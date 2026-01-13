@@ -60,10 +60,15 @@ class LtpAnalyze(Analyze):
         res.frames = self._frames(output, res.tokens)
         res.entities = self._entities(output)
         res.relations = self._relations(output, res.tokens)
+        res.normalized_text = self._normalized(text)
         
 
         return res
-    
+    def _normalized(self, text: str) -> str:
+        """文本规范化处理"""
+        # 去除多余空白
+        text = re.sub(r'\s+', ' ', text).strip()
+        return text
     def _keywords(self, output):
         """提取关键词结果"""
         tokens = output.cws[0]

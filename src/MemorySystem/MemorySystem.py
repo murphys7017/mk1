@@ -22,11 +22,11 @@ class MemorySystem:
 
         self.memory_policy = MemoryPolicy(llm_management)
 
-        self.strorage = MemoryStorage(
+        self.storage = MemoryStorage(
             history_window, summary_window, min_raw_for_summary,
             raw_history, self.llm_management,self.memory_policy)
         
-        self.assembler = MemoryAssembler(self.strorage, raw_history)
+        self.assembler = MemoryAssembler(self.storage, raw_history)
         
 
     def assemble(self) -> PromptBuilder:

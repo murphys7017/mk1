@@ -33,6 +33,6 @@ class MemoryStorage:
     def getIdentity(self) -> PromptBuilder:
         return self.identity_memory.getIdentity()
     
-    def getDialogue(self) -> list[DialogueMessage]:
+    def maybeUpdateDialogueSummary(self) -> list[DialogueMessage]:
         return self.dialogue_storage.ingestDialogue()
     

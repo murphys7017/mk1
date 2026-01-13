@@ -9,12 +9,12 @@ from DataClass.TagType import TagType
 
 class MemoryAssembler:
     def __init__(self,
-                 strorage: MemoryStorage,
+                 storage: MemoryStorage,
                  raw_history: RawChatHistory,
                  history_window: int = 20,
                  ):
         self.history_window = history_window
-        self.strorage = strorage
+        self.storage = storage
         self.raw_history = raw_history
 
 
@@ -36,7 +36,7 @@ class MemoryAssembler:
         # - mid memory (recent dialogue summaries)
         system_prompt = PromptBuilder()
 
-        identity = self.strorage.getIdentity()
+        identity = self.storage.getIdentity()
 
         memory_prompt = PromptBuilder(TagType.MEMORY_SYSTEM_TAG)
         memory_prompt.include(self._build_mid_memory())

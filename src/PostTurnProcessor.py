@@ -42,8 +42,8 @@ class PostTurnProcessor:
             return
 
         # 统一调度：摘要/状态更新/未来的长期记忆
-        if self.memory_system.strorage.dialogue_storage:
-            self.memory_system.strorage.getDialogue()
+        if self.memory_system.storage.dialogue_storage:
+            self.memory_system.storage.maybeUpdateDialogueSummary()
 
         if self.chat_state_system:
             self.chat_state_system.checkAndUpdateState(event.turn_id)
