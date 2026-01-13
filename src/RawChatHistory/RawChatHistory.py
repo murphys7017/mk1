@@ -14,9 +14,14 @@ class RawChatHistory:
         self.history_length = history_length
         self.dialogue_length = dialogue_length
 
+        self.historys: list[ChatMessage] = []
+        self.dialogues: list[DialogueMessage] = []
+
     def getHistory(self,length = -1) -> list[ChatMessage]:
         if length == -1:
             length = self.history_length
+        if len(self.historys) >= length:
+            return self.historys[-length:]
         return self.sql_manager.getHistory(length)
     
     def getHistoryLength(self) -> int:
@@ -28,16 +33,27 @@ class RawChatHistory:
     def getDialogues(self, length: int = -1) -> list:
         if length == -1:
             length = self.dialogue_length
+        if len(self.dialogues) >= length:
+            return self.dialogues[-length:]
         return self.sql_manager.getDialogues(length)
     
     def updateDialogue(self, dialogue: DialogueMessage):
-        return self.sql_manager.updateDialogue(dialogue)
+        res = self.sql_manager.updateDialogue(dialogue)
+        self.dialogues = [d for d in self.dialogues if d.dialogue_id != dialogue.dialogue_id]
+        self.dialogues.append(dialogue)
+        self.dialogues = self.dialogues[-self.dialogue_length:]
+        return res
     
     def addDialogues(self, dialogue: DialogueMessage):
+        self.dialogues.append(dialogue)
+        self.dialogues = self.dialogues[-self.dialogue_length:]
         return self.sql_manager.addDialogue(dialogue)
 
     def addMessage(self, message: ChatMessage):
+        self.historys.append(message)
+        self.historys = self.historys[-self.history_length:]
         return self.sql_manager.addMessage(message)
+    
     def deleteMessageById(self, chat_turn_id: int):
         return self.sql_manager.deleteMessageById(chat_turn_id)
         
