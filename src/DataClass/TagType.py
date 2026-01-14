@@ -12,6 +12,7 @@ class TagType(StrEnum):
     USER_PROFILE_TAG = "USER_PROFILE"     # 用户档案
     IMEMORY_LONG_TAG = "MEMORY_LONG"      # 已摘要的长期记忆
     MEMORY_MID_TAG = "MEMORY_MID"         # 已摘要的中期记忆
+    MEMORY_SHORT_TAG = "MEMORY_SHORT"     # 已摘要的短期记忆
 
     # ===== 身份 / 世界观 =====
     IDENTITY_CORE_TAG = "IDENTITY_CORE"   # 核心身份 + 长期自我（不可违背）

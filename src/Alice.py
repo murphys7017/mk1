@@ -21,21 +21,25 @@ class Alice:
     包含感知系统和记忆系统
     
     pipline:
-    用户多模态输入 -> 感知系统分析 -> 记忆系统构建消息 -> LLM生成响应 -> 返回响应 -> 更新记忆系统 
+    用户多模态输入 -> 感知系统分析 -> 查询系统查询 -> 记忆系统构建消息 -> LLM生成响应 -> 返回响应 -> 更新记忆系统 
+
+    **kwargs 参数说明**:
+    - history_window: 记忆系统中近期消息窗口大小（轮数）
+    - dialogue_window: 记忆系统中近期摘要窗口大小（条数）
+    - min_raw_for_summary: 记忆系统中生成摘要所需的最少原始消息轮数
+    - default_history_length: 原始聊天历史的默认最大长度（轮数） / 缓存多少轮原始消息
+    - default_dialogue_length: 原始聊天历史的摘要最大长度（轮数）/缓存多少轮摘要
+    - db_path: 聊天历史数据库路径
+    - db_echo: 是否开启数据库操作日志
+    - analysis_window: 聊天状态分析窗口大小（轮数）
+
 
     """
-    def __init__(self,
-                 history_window=20, 
-                 dialogue_window=4,
-                 min_raw_for_summary=4,
-                 default_history_length=100, 
-                 default_dialogue_length=20 , 
-                 db_path="chat_history.db" , 
-                 db_echo=True,
-                 **kwargs):
-        self.history_window = history_window
-        self.dialogue_window = dialogue_window
-        self.min_raw_for_summary = min_raw_for_summary
+    def __init__(self, **kwargs):
+        self.history_window = kwargs.get("history_window", 20)
+        self.dialogue_window = kwargs.get("dialogue_window", 4)
+        self.min_raw_for_summary = kwargs.get("min_raw_for_summary", 4)
+
         self.system_prompt = SystemPrompt()
         self.llm_management = LLMManagement(self.system_prompt)
         
@@ -47,10 +51,10 @@ class Alice:
 
         
         self.raw_history = RawChatHistory(
-                history_length= default_history_length, 
-                dialogue_length= default_dialogue_length , 
-                db_path= db_path, 
-                echo= db_echo,
+                history_length= kwargs.get("default_history_length", 100), 
+                dialogue_length= kwargs.get("default_dialogue_length", 20), 
+                db_path= kwargs.get("db_path", "chat_history.db"), 
+                echo= kwargs.get("db_echo", True)
         )
 
 
@@ -65,7 +69,9 @@ class Alice:
 
 
         self.memory_system = MemorySystem(
-            self.history_window, self.dialogue_window, self.min_raw_for_summary,
+            self.history_window, 
+            self.dialogue_window, 
+            self.min_raw_for_summary,
             self.raw_history, self.llm_management
         )
 
@@ -84,7 +90,8 @@ class Alice:
             chat_state_system=self.chat_state_system,  # 后续设置
             system_prompt=self.system_prompt,
             raw_history=self.raw_history,  # 后续设置
-            history_window=self.history_window
+            history_window=self.history_window,
+            analysis_window=kwargs.get("analysis_window",3),
         )
 
 
@@ -104,7 +111,7 @@ class Alice:
         logger.debug(f"User input added to history: {user_input}")
 
         # 构建消息
-        messages = self.assembler.build_messages(user_input)
+        messages = self.assembler.build_messages()
         logger.debug(f"Built messages for response: {messages}")
 
         # 调用LLM生成响应

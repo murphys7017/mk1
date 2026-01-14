@@ -23,6 +23,7 @@ class DefaultGlobalContextAssembler(GlobalContextAssembler):
         system_prompt: SystemPrompt,
         raw_history: RawChatHistory,
         history_window: int,
+        analysis_window: int = 3,
        
     ):
         self.memory_system = memory_system
@@ -30,29 +31,45 @@ class DefaultGlobalContextAssembler(GlobalContextAssembler):
         self.history_window = history_window
         self.raw_history = raw_history
         self.system_prompt = system_prompt
-        self.user_inputs: List[ChatMessage] = []
+        self.analysis_window = analysis_window
 
     def build_messages(
-        self,
-        user_input: ChatMessage
+        self
     ) -> list[dict[str, Any]]:
-        self.user_inputs.append(user_input)
-        self.user_inputs = self.user_inputs[-3:]
+        
+        # query context from memory system / chat state system /other modules
+ 
+        # 总体 system prompt 构建流程：
+        system_prompt = PromptBuilder()
 
-        system_prompt = self.memory_system.assemble()
+        # 记忆系统部分
+        memory_prompt = PromptBuilder(TagType.MEMORY_SYSTEM_TAG)
+        identity_prompt = self.memory_system.assembleIdentity()
+        short_memory_prompt = self.memory_system.assembleShortMemory()
+        # query info 
+
+
+        memory_prompt.include(identity_prompt)
+        memory_prompt.include(short_memory_prompt)
+
+        # 对话状态分析部分
         chat_state_prompt = self.chat_state_system.assemble()
         system_prompt.include(chat_state_prompt) 
 
         analyze_prompt = PromptBuilder(TagType.ANALYZE_TAG)
 
-        for msg in self.user_inputs:
+        for msg in self.raw_history.getHistory(self.analysis_window):
             anl = msg.analyze_result
             if anl is not None:
                 analyze_prompt.include(anl.analyze_result_to_prompt())
+        
+
+
+        memory_prompt.include(memory_prompt)
         system_prompt.include(analyze_prompt)
 
 
-
+        # 响应协议部分
         response_protocol = PromptBuilder(TagType.RESPONSE_PROTOCOL_TAG)
         resp_prompt = self.system_prompt.getPrompt(TagType.RESPONSE_PROTOCOL_TAG)
         for line in resp_prompt.lines:

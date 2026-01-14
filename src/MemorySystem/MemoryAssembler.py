@@ -18,9 +18,9 @@ class MemoryAssembler:
         self.raw_history = raw_history
 
 
-    def _build_mid_memory(self) -> PromptBuilder:
+    def _build_short_memory(self) -> PromptBuilder:
         dialogues = self.raw_history.getDialogues(3)
-        b = PromptBuilder(TagType.MEMORY_MID_TAG)
+        b = PromptBuilder(TagType.MEMORY_SHORT_TAG)
         i= 1
         for msg in dialogues:
             if msg is None:
@@ -29,6 +29,10 @@ class MemoryAssembler:
             i += 1
         return b
 
+    def assembleIdentity(self) -> PromptBuilder:
+        return self.storage.getIdentity()
+    def assembleShortMemory(self) -> PromptBuilder:
+        return self._build_short_memory()
     
     def assemble(self) -> PromptBuilder:
         # Build memory prompt:
@@ -36,10 +40,10 @@ class MemoryAssembler:
         # - mid memory (recent dialogue summaries)
         system_prompt = PromptBuilder()
 
-        identity = self.storage.getIdentity()
+        identity = self.assembleIdentity()
 
         memory_prompt = PromptBuilder(TagType.MEMORY_SYSTEM_TAG)
-        memory_prompt.include(self._build_mid_memory())
+        memory_prompt.include(self.assembleShortMemory())
 
         system_prompt.include(identity)
         system_prompt.include(memory_prompt)

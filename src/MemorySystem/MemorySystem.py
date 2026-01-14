@@ -28,6 +28,10 @@ class MemorySystem:
         
         self.assembler = MemoryAssembler(self.storage, raw_history)
         
-
+    def assembleIdentity(self) -> PromptBuilder:
+        return self.assembler.assembleIdentity()
+    def assembleShortMemory(self) -> PromptBuilder:
+        return self.assembler.assembleShortMemory()
+    
     def assemble(self) -> PromptBuilder:
         return self.assembler.assemble()
