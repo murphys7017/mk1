@@ -1,79 +1,125 @@
 """
-DataClass.QuerySchema 的 Docstring
-查询模式的定义，主要用于区分不同类型的查询请求。
-类似信息密度，查询那些记忆，查询参数等
-ueryPlan 是一个强 schema 的结构体，它必须回答这些问题：
+QuerySchema: 强 schema 的“检索/注入计划书”。
 
-这轮输入的 意图是什么
+职责边界：
+- QuerySchema 只描述“要不要检索、检索哪些源、用什么条件、注入预算与回退”。
+- 不做任何实际检索、不拼 prompt、不访问数据库。
 
-输入的信息密度属于哪一档（low / mid / high）
-
-是否允许检索
-
-允许检索哪些信息源
-
-允许使用哪些主题标签
-
-用什么 query（或不用）
-
-最多取多少条
-
-是否需要 TTL
-
-允许注入多少 token
-
-失败时如何回退
-
-为什么做出这些决定（reasons）
+设计要点：
+- must_include 用于“永远注入”的块（如 world_core），避免把它当成可检索 source。
+- retrieve 是硬闸门：Executor 必须以它为准，retrieve=False 时禁止任何查询。
+- sources/tags/query/top_k/ttl/token_budget 是执行参数。
+- reasons 用于可解释性与调试，绝不参与执行逻辑。
 """
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Any, Any, Literal
+from enum import Enum
+from typing import Any, Dict, List, Optional, Literal
 
 
-@dataclass
+# ---------- enums / literals ----------
+
+SignalDensity = Literal["low", "mid", "high"]
+
+# 注意：source 表示“需要检索的数据源”，不是“固定注入的设定块”
+SourceName = Literal[
+    "short_term",    # recent raw messages
+    "mid_term",      # dialogue summaries
+    "long_term",     # long memory items
+    "user_profile",  # user facts/preferences
+    "world_bg",      # world background items (contextual)
+    "env",           # environment snapshot (ttl required)
+    "kb",            # knowledge base / documents
+    "web",           # external web/news (if allowed)
+]
+
+MustIncludeName = Literal[
+    "world_core",    # always injected, not retrieved
+]
+
+IntentName = Literal[
+    "ping_presence",         # 在吗/hello/?
+    "general_conversation",  # 普通闲聊延续
+    "clarify",               # 澄清/追问
+    "world_background",      # 问系统/项目设定、架构、规则
+    "environment_status",    # 主机状态/天气/新闻等动态信息
+    "knowledge_lookup",      # 查知识库/文档
+    "user_memory",           # 回忆用户信息/偏好
+    "unknown",
+]
+
+
+class FallbackPolicy(str, Enum):
+    """
+    当 retrieve=True 但检索结果为空 / 执行失败时，Assembler/Executor 应采取的策略。
+    """
+    USE_MUST_INCLUDE_ONLY = "use_must_include_only"  # 只注入 must_include（通常等价于 world_core only）
+    EMPTY_CONTEXT = "empty_context"                  # 不注入任何检索块（仍然可以有 system/core）
+    RELAX_FILTERS = "relax_filters"                  # 放宽过滤（例如扩大 top_k / 降低 min_score），由 Executor 决定怎么做
+    NONE = "none"
+
+
+# ---------- schema ----------
+
+@dataclass(slots=True)
 class QuerySchema:
-    # 1. 意图识别（intent）
-    intent: str | None = None
-    # 说明：高层语义意图（如 "recall_event", "check_preference", "clarify"），由 AnalyzeResult 推导而来。
-    # 作用：供 Executor 和 Assembler 理解上下文，但不触发行为。
-
-    # 2. 信息密度（signal_density）
-    signal_density: Literal["low", "mid", "high"] = "low"
-    # 说明：直接对应 checklist 第5条。决定是否允许检索的关键开关。
-
-    # 3. 是否允许检索（retrieve）
+    # (1) routing
+    intent: IntentName = "unknown"
+    signal_density: SignalDensity = "low"
     retrieve: bool = False
-    # 说明：硬闸门控制。若为 False，则 Executor 必须跳过所有 source 查询。
 
-    # 4. 允许的信息源（sources）
-    sources: list[Literal["short_term", "mid_term", "long_term", "world_core", "user_profile"]] = field(default_factory=list)
-    # 说明：明确授权可查范围。Executor 仅遍历此列表。
+    # (2) fixed injection
+    must_include: List[MustIncludeName] = field(default_factory=lambda: ["world_core"])
 
-    # 5. 主题标签过滤（tags）
-    tags: list[str] = field(default_factory=list)
-    # 说明：用于在支持 tag 的 source 中做预过滤（如 SQLite 的 WHERE tag IN (...)）。
-
-    # 6. 查询语句（query）
-    query: str | None = None
-    # 说明：原始或重写的查询字符串。若为 None 且 retrieve=True，可能表示全量拉取（需谨慎）。
-
-    # 7. 结果数量限制（top_k）
+    # (3) retrieval authorization
+    sources: List[SourceName] = field(default_factory=list)
+    tags: List[str] = field(default_factory=list)
+    query: Optional[str] = None
     top_k: int = 3
-    # 说明：每个 source 最多返回条目数。Executor 必须遵守，不得自行扩大。
 
-    # 8. 生存时间约束（ttl_seconds）
-    ttl_seconds: int | None = None
-    # 说明：仅用于带时间戳的记忆（如 short/mid term）。Executor 在 source 层过滤过期项。
+    # (4) freshness / budget
+    ttl_seconds: Optional[int] = None          # env/web 之类强烈建议有
+    token_budget: Optional[int] = None         # 注入总预算（给 Assembler 做截断）
+    max_items_per_source: Dict[str, int] = field(default_factory=dict)
 
-    # 9. Token 预算（token_budget）
-    token_budget: int | None = None
-    # 说明：供 Assembler 或后续模块做截断参考，非 Executor 职责，但可提前声明。
+    # (5) fallback & observability
+    fallback: FallbackPolicy = FallbackPolicy.USE_MUST_INCLUDE_ONLY
+    reasons: Dict[str, Any] = field(default_factory=dict)
 
-    # 10. 回退策略（fallback）
-    fallback: Literal["none", "use_world_core", "empty_context"] = "none"
-    # 说明：当 retrieve=True 但无结果时的行为。由 Assembler 执行，但由 Schema 声明。
+    def validate(self) -> None:
+        """
+        运行时自检（可选，但强烈推荐在 builder 末尾调用一次）。
+        发现不一致就抛错，避免“静默乱注入”。
+        """
+        if self.signal_density not in ("low", "mid", "high"):
+            raise ValueError(f"invalid signal_density={self.signal_density}")
 
-    # 11. 决策理由（reasons）
-    reasons: dict[str, Any] = field(default_factory=dict)
-    # 说明：调试/日志用。例如 {"low_signal": True, "intent_unclear": True}。
-    # 不参与执行逻辑，仅用于可观测性。@dataclass
+        if self.top_k < 0:
+            raise ValueError("top_k must be >= 0")
+
+        # retrieve 是硬闸门：retrieve=False 时必须没有 sources
+        if not self.retrieve and self.sources:
+            raise ValueError("retrieve=False but sources is not empty")
+
+        # env/web 一般需要 ttl（你也可以按需放宽）
+        if self.retrieve and any(s in ("env", "web") for s in self.sources):
+            if self.ttl_seconds is None:
+                raise ValueError("env/web sources require ttl_seconds")
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "intent": self.intent,
+            "signal_density": self.signal_density,
+            "retrieve": self.retrieve,
+            "must_include": list(self.must_include),
+            "sources": list(self.sources),
+            "tags": list(self.tags),
+            "query": self.query,
+            "top_k": self.top_k,
+            "ttl_seconds": self.ttl_seconds,
+            "token_budget": self.token_budget,
+            "max_items_per_source": dict(self.max_items_per_source),
+            "fallback": self.fallback.value if isinstance(self.fallback, FallbackPolicy) else self.fallback,
+            "reasons": dict(self.reasons),
+        }

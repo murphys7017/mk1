@@ -1,9 +1,8 @@
 import time
 from typing import Any
-from openai import OpenAI
 from ChatStateSystem.DefaultChatStateSystem import DefaultChatStateSystem
-from ChatStateSystem.ChatStateSystem import ChatStateSystem
 from ContextAssembler.DefaultGlobalContextAssembler import DefaultGlobalContextAssembler
+from DataClass.EventType import EventType
 from EventBus import EventBus
 from LLM.LLMManagement import LLMManagement
 from DataClass.ChatMessage import ChatMessage
@@ -11,9 +10,9 @@ from PerceptionSystem.PerceptionSystem import PerceptionSystem
 from MemorySystem.MemorySystem import MemorySystem
 from loguru import logger
 
+from PostTreatmentSystem.PostHandleSystem import PostHandleSystem
 from PostTurnProcessor import PostTurnProcessor
 from RawChatHistory.RawChatHistory import RawChatHistory
-from RawChatHistory.SqlitManagementSystem import SqlitManagementSystem
 from SystemPrompt import SystemPrompt
 
 class Alice:
@@ -45,7 +44,7 @@ class Alice:
         
         self.event_bus = EventBus()
 
-        self.perception_system = PerceptionSystem(self.llm_management)
+        self.perception_system = PerceptionSystem(self.llm_management, **kwargs)
 
         
 
@@ -74,13 +73,20 @@ class Alice:
             self.min_raw_for_summary,
             self.raw_history, self.llm_management
         )
+        self.post_handle_system = PostHandleSystem(
+            event_bus=self.event_bus,
+            llm_management=self.llm_management,
+            raw_history=self.raw_history,
+            **kwargs
+        )
 
         self.post_tuen_processor = PostTurnProcessor(
             memory_long= 100,
             event_bus= self.event_bus,
             memory_system= self.memory_system, 
             chat_state_system= self.chat_state_system,
-            raw_history= self.raw_history
+            raw_history= self.raw_history,
+            post_handle_system= self.post_handle_system
             )
         
 
@@ -94,6 +100,7 @@ class Alice:
             analysis_window=kwargs.get("analysis_window",3),
         )
 
+        
 
     
     
@@ -134,7 +141,7 @@ class Alice:
                 ))
         # 触发回合完成事件
         self.event_bus.publish(
-            event_type="ASSISTANT_RESPONSE_GENERATED",
+            event_type=EventType.ASSISTANT_RESPONSE_GENERATED,
             data=response,
             turn_id=assistant_response_id
         )

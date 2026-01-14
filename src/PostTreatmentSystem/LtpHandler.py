@@ -9,7 +9,10 @@ import re
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from functools import lru_cache
 
-class LtpAnalyze(Analyze):
+from PostTreatmentSystem.HandlerAbstract import Handler
+from RawChatHistory.RawChatHistory import RawChatHistory
+
+class LtpHandler(Handler):
     def __init__(self,**kwargs):
         if kwargs.get('ltp', None):
             self.ltp = kwargs['ltp']
@@ -45,28 +48,30 @@ class LtpAnalyze(Analyze):
 
         return stopwords
     
-    def analyze(self, input_data: str) -> AnalyzeResult:
+    def handler(self, raw_history: RawChatHistory, res: dict[str,Any]) -> dict[str, Any]:
+        input_data = raw_history.getHistory(1)[-1].content
         analysis_results = self.text_analysis(input_data)
-        return analysis_results
+        res['ltp'] = analysis_results
+        return res
     
 
-    def text_analysis(self, text: str) -> AnalyzeResult:
+    def text_analysis(self, text: str) -> dict[str, Any]:
         #  分词 cws、词性 pos、命名实体标注 ner、语义角色标注 srl、依存句法分析 dep、语义依存分析树 sdp、语义依存分析图 sdpg
         output = self.ltp.pipeline(
             [text], 
             tasks=["cws", "pos", "ner", "srl", "dep", "sdp", "sdpg"])
 
         if output == {} or output is None:
-            return AnalyzeResult()
+            return {}
         # 使用字典格式作为返回结果
-        res = AnalyzeResult()
-        res.raw["ltp"] = dict(output)
-        res.keywords = self._keywords(output)
-        res.tokens = self._tokens(output)
-        res.frames = self._frames(output, res.tokens)
-        res.entities = self._entities(output)
-        res.relations = self._relations(output, res.tokens)
-        res.normalized_text = self._normalized(text)
+        res = {}
+        res["keywords"] = self._keywords(output)
+        res["tokens"] = self._tokens(output)
+        res["frames"] = self._frames(output, res["tokens"])
+        res["entities"] = self._entities(output)
+        res["relations"] = self._relations(output, res["tokens"])
+        res["normalized_text"] = self._normalized(text)
+        return res
         
 
         return res
@@ -101,7 +106,7 @@ class LtpAnalyze(Analyze):
         从 LTP 输出中提取并标准化分词与词性标注结果。
 
         清理原始分词中的首尾空白字符与换行符，生成带唯一 ID 的 token 列表，
-        便于后续句法与语义分析模块引用。
+        便于后续句法与语义分析模块引用.
 
         Args:
             ltp_output: LTP 原始输出字典，需包含 'cws' 和 'pos' 字段。

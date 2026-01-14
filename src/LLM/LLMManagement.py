@@ -1,5 +1,6 @@
 from LLM.OllamaChat import OllamaChat
 from LLM.OllamaFormated import OllamaFormated
+from LLM.QwenFormated import QwenFormated
 from loguru import logger
 from DataClass.PromptTemplate import PromptTemplate
 from SystemPrompt import SystemPrompt
@@ -12,12 +13,14 @@ class LLMManagement():
             "judge_dialogue_summary": "qwen3:1.7b",
             "summarize_dialogue": "qwen3:4b",
             "judge_chat_state": "qwen3:1.7b",
+            "motion_intent": "qwen3:1.7b",
             "qw8": "qwen3:8b"
         }
         self.llm_map = {
             "qwen3:8b": OllamaChat(),
             "qwen3:1.7b": OllamaFormated(),
             "qwen3:4b": OllamaFormated(),
+            "qwen-plus": QwenFormated()
         }
         self.system_prompt = system_prompt
 

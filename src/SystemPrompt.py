@@ -90,6 +90,25 @@ class SystemPrompt:
             output_schema={},
             lines=resp_lines,
         )
+        # SystemPrompt.py (inside load_template)
+        self.prompt_map["motion_intent"] = PromptTemplate(
+            name="motion_intent",
+            template=SystemPrompt.motion_intent_builder().build(),
+            required_fields=["analyze_block", "base_motion_list"],
+            output_schema={
+                "base_motion": "str",
+                "duration": "float",
+                "emotion": "str",
+                "intensity": "float",
+                "speaking": "bool",
+                "energy": "float",
+                "blink_at": "list[float]",
+                "beats": "list[dict]",
+                "gaze": "dict",
+                "loop": "bool",
+            },
+        )
+
 
     def getPrompt(self, prompt_name: str) -> PromptTemplate:
         return self.prompt_map[prompt_name]
@@ -223,4 +242,39 @@ class SystemPrompt:
             '{{"interaction": "...", "user_attitude": "...", "emotional_state": "...", "leading_approach": "..."}}'
         )
         b.add("不要输出任何解释。")
+        return b
+
+    @staticmethod
+    def motion_intent_builder() -> PromptBuilder:
+        b = PromptBuilder()
+        b.add("你是 Live2D 动作意图抽取器。")
+        b.add("输入：AnalyzeResult（结构化分析）+ 候选基础 motion 文件名列表。")
+        b.add("输出：一个 JSON 对象（intent.json），用于后续合成临时 motion3.json。")
+
+        b.add("【硬性要求】")
+        b.add("- 只输出一个 JSON 对象，不要输出任何解释、不要 markdown、不要多余文本。")
+        b.add("- base_motion 必须从候选列表中选择一个（精确字符串匹配）。")
+        b.add("- 允许缺字段：缺失字段由系统默认填充。")
+
+        b.add("【候选基础 motion 列表】")
+        b.add("{base_motion_list}")
+
+        b.add("【AnalyzeResult】")
+        b.add("{analyze_block}")
+
+        b.add("【输出 JSON 格式】")
+        b.add(
+            '{{'
+            '"base_motion": string,'
+            '"duration": number,'
+            '"emotion": "neutral|happy|sad|angry|surprised|shy|thinking",'
+            '"intensity": number,'
+            '"speaking": boolean,'
+            '"energy": number,'
+            '"blink_at": number[],'
+            '"beats": [{{"t": number, "type": "emphasis"}}],'
+            '"gaze": {{"x": number, "y": number}},'
+            '"loop": boolean'
+            '}}'
+        )
         return b

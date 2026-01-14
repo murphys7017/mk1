@@ -23,3 +23,5 @@ class EventType(StrEnum):
     STATE_UPDATED = "state_updated"
     COMMAND_ISSUED = "command_issued"
     ERROR_OCCURRED = "error_occurred"
+    POST_HANDLE_COMPLETED = "post_handle_completed"
+    MEMORY_UPDATED = "memory_updated"

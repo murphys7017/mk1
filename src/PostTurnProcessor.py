@@ -1,3 +1,4 @@
+import asyncio
 from loguru import logger
 
 from ChatStateSystem.ChatStateSystem import ChatStateSystem
@@ -5,6 +6,7 @@ from DataClass.ChatEvent import ChatEvent
 from DataClass.ChatMessage import ChatMessage
 from DataClass.EventType import EventType
 from MemorySystem.MemorySystem import MemorySystem
+from PostTreatmentSystem.PostHandleSystem import PostHandleSystem
 from RawChatHistory.RawChatHistory import RawChatHistory
 
 
@@ -20,6 +22,7 @@ class PostTurnProcessor:
         memory_system: MemorySystem,
         chat_state_system: ChatStateSystem,
         raw_history: RawChatHistory,
+        post_handle_system: PostHandleSystem
     ):
         self.event_bus = event_bus
         self.memory_system = memory_system
@@ -28,6 +31,7 @@ class PostTurnProcessor:
         self.memory_long = memory_long
         
         self.raw_history = raw_history
+        self.post_handle_system = post_handle_system
 
         self._last_processed_turn_id: int | None = None
 
@@ -36,22 +40,43 @@ class PostTurnProcessor:
             EventType.ASSISTANT_RESPONSE_GENERATED,
             self._handle_assistant_response
         )
+        self.event_bus.subscribe(
+            EventType.POST_HANDLE_COMPLETED,
+            self._handle_post_handle_completed
+        )
+    def _handle_post_handle_completed(self, event: ChatEvent):
+        if not self._should_process(event):
+            return
 
-    def _handle_assistant_response(self, event: ChatEvent):
+
+    async def _handle_assistant_response(self, event: ChatEvent):
         if not self._should_process(event):
             return
 
         # 统一调度：摘要/状态更新/未来的长期记忆
-        if self.memory_system.storage.dialogue_storage:
-            self.memory_system.storage.maybeUpdateDialogueSummary()
+        try:
+            if self.memory_system.storage.dialogue_storage:
+                # may be IO-bound but synchronous here
+                self.memory_system.storage.maybeUpdateDialogueSummary()
 
-        if self.chat_state_system:
-            self.chat_state_system.checkAndUpdateState(event.turn_id)
+            if self.chat_state_system:
+                self.chat_state_system.checkAndUpdateState(event.turn_id)
 
-        if self.memory_long:
-            handler = getattr(self.memory_long, "process_event", None)
-            if callable(handler):
-                handler(event)
+            if self.memory_long:
+                handler = getattr(self.memory_long, "process_event", None)
+                if callable(handler):
+                    # allow sync handler
+                    handler(event)
+
+            if self.post_handle_system:
+                # schedule post_handle_system.handle asynchronously
+                try:
+                    asyncio.create_task(self.post_handle_system.handle(timeout=20.0))
+                except Exception as exc:
+                    logger.warning(f"PostTurnProcessor failed to invoke PostHandleSystem: {exc}")
+        except Exception as exc:
+            logger.exception(f"_handle_assistant_response internal error: {exc}")
+        
 
     def _should_process(self, event: ChatEvent) -> bool:
         # 若有 turn_id，按回合去重
