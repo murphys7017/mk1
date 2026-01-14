@@ -65,7 +65,7 @@ class DefaultGlobalContextAssembler(GlobalContextAssembler):
         
 
 
-        memory_prompt.include(memory_prompt)
+        system_prompt.include(memory_prompt)
         system_prompt.include(analyze_prompt)
 
 

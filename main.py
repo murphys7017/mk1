@@ -36,20 +36,20 @@ async def main():
 
     alice = Alice(ltp=ltp, ltp_stopwords=STOPWORDS)
 
-    server = await start_ws_server(alice, host='0.0.0.0', port=8765)
-    try:
-        await asyncio.Future()  # 或者其它你的主循环
-    finally:
-        await stop_ws_server(server)
+    # server = await start_ws_server(alice, host='0.0.0.0', port=8765)
+    # try:
+    #     await asyncio.Future()  # 或者其它你的主循环
+    # finally:
+    #     await stop_ws_server(server)
 
 
-    # while True:
-    #     user_input = input("你: ")
-    #     if user_input.lower() == "退出":
-    #         print("再见！")
-    #         break
-    #     response = await alice.respond({"text": user_input})
-    #     print("爱丽丝: " + response)
+    while True:
+        user_input = input("你: ")
+        if user_input.lower() == "退出":
+            print("再见！")
+            break
+        response = await alice.respond({"text": user_input})
+        print("爱丽丝: " + response)
 
 
 

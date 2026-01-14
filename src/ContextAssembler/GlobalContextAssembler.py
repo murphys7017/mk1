@@ -10,8 +10,7 @@ class GlobalContextAssembler(ABC):
 
     @abstractmethod
     def build_messages(
-        self,
-        user_input: ChatMessage
+        self
     ) -> list[dict[str, Any]]:
         """
         recent_messages:
