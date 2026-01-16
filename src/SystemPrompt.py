@@ -108,6 +108,80 @@ class SystemPrompt:
                 "loop": "bool",
             },
         )
+        # ========== 7) query_router ==========
+        # 轻量路由器：只做 intent/source/mode/topk/ttl/token_budget 的“建议”
+        # 注意：低信号闸门仍应在系统侧规则执行，LLM 不得推翻 hard gate。
+        self.prompt_map["query_router"] = PromptTemplate(
+            name="query_router",
+            template=SystemPrompt.query_router_builder().build(),
+            required_fields=["router_input"],
+            output_schema={
+                "intent": "str",
+                "confidence": "float",
+                "retrieve": "bool",
+                "source_plans": "list[dict]",
+                "routing_tags": "list[str]",
+                "token_budget": "int",
+                "reasons": "dict",
+            },
+        )
+
+
+    @staticmethod
+    def query_router_model():
+        # 你可以换成更小更快的模型，只要能稳定输出严格 JSON
+        return "qwen3:1.7b"
+    @staticmethod
+    def query_router_builder() -> PromptBuilder:
+        """
+        Query Router: 只做“路由决策建议”，不做检索、不拼 prompt。
+        输入 router_input（JSON 字符串），输出严格 JSON（不允许额外文字）。
+        """
+        b = PromptBuilder()
+        b.add("你是一个【检索路由器】。")
+        b.add("任务：根据输入的 router_input（JSON），输出一份检索计划建议（严格 JSON）。")
+        b.add("")
+        b.add("【重要约束】")
+        b.add("- 你必须只输出一个 JSON 对象，不能输出任何其他文字、空格、换行、注释或 markdown。")
+        b.add("- 不要编造来源：sources 只能从 allowed_sources 里选。")
+        b.add("- world_core 永远不作为 source（它是系统固定注入的 must_include）。")
+        b.add("- 如果输入显示 low-signal（很短且无关键词/实体/frames），必须设置 retrieve=false 且 source_plans=[].")
+        b.add("- 如果使用 env 作为 source，则必须为该 source 提供 ttl_seconds（建议 120）。")
+        b.add("- 优先 keyword 模式以保证速度；仅 knowledge_lookup 场景推荐 hybrid（keyword 粗筛 + vector rerank）。")
+        b.add("- 除非 intent=user_memory，否则不要选择 user_profile。")
+        b.add("")
+        b.add("【输入 router_input】")
+        b.add("{router_input}")
+        b.add("")
+        b.add("【输出 JSON 结构】")
+        b.add(
+            '{{'
+            '"intent": "ping_presence|general_conversation|clarify|world_background|environment_status|knowledge_lookup|user_memory|unknown",'
+            '"confidence": 0.0,'
+            '"retrieve": true,'
+            '"routing_tags": ["topic:chat|topic:architecture|topic:env|topic:knowledge|topic:user"],'
+            '"token_budget": 512,'
+            '"source_plans": ['
+            '  {{'
+            '    "name": "short_term|mid_term|long_term|user_profile|world_bg|env|kb",'
+            '    "ttl_seconds": null,'
+            '    "specs": ['
+            '      {{'
+            '        "q": "string",'
+            '        "mode": "keyword|vector|hybrid|llm",'
+            '        "tags": ["topic:..."],'
+            '        "filters": {{}},'
+            '        "top_k": 5,'
+            '        "min_score": null,'
+            '        "rerank": false'
+            '      }}'
+            '    ]'
+            '  }}'
+            '],'
+            '"reasons": {{"marker_hits": [], "notes": ""}}'
+            '}}'
+        )
+        return b
 
 
     def getPrompt(self, prompt_name: str) -> PromptTemplate:

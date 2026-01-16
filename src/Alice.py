@@ -9,6 +9,7 @@ from DataClass.ChatMessage import ChatMessage
 from PerceptionSystem.PerceptionSystem import PerceptionSystem
 from MemorySystem.MemorySystem import MemorySystem
 from loguru import logger
+from tools.tools import tools
 
 from PostTreatmentSystem.PostHandleSystem import PostHandleSystem
 from PostTurnProcessor import PostTurnProcessor
@@ -81,7 +82,6 @@ class Alice:
         )
 
         self.post_tuen_processor = PostTurnProcessor(
-            memory_long= 100,
             event_bus= self.event_bus,
             memory_system= self.memory_system, 
             chat_state_system= self.chat_state_system,
@@ -108,18 +108,29 @@ class Alice:
         """
         生成对用户输入的响应
         """
+        logger.debug(f"Alice received user inputs: {user_inputs}")
         # 处理响应
         user_input = await self.perception_system.analyze(user_inputs)
+        logger.debug("User input after perception analysis: " + str(user_input))
 
-        logger.debug(f"Perceived messages: {user_input}")
 
         # 添加到数据库
         user_input_id = self.raw_history.addMessage(user_input)
-        logger.debug(f"User input added to history: {user_input}")
+
+        logger.info(f"Added user input to history with ID: {user_input_id}")
+
 
         # 构建消息
         messages = self.assembler.build_messages()
-        logger.debug(f"Built messages for response: {messages}")
+        logger.debug("System Prompt:")
+        logger.debug(messages[0]['content'])
+
+        block = tools.formatBlock(
+            "Messages:",
+            f"{messages[1:]}",
+            width=100,
+        )
+        logger.debug("\n" + block)
 
         # 调用LLM生成响应
         try:

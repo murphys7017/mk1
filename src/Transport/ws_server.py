@@ -17,7 +17,7 @@ from typing import Any, Set
 
 import websockets
 
-from loguru import logger
+from logging_config import logger
 from DataClass.ChatMessage import ChatMessage
 from EventBus import EventBus
 from DataClass.EventType import EventType

@@ -47,6 +47,63 @@ class DialogueStorage:
         self.recent_summaries: List[DialogueMessage] = []
 
     # ---------- 基础入口 ----------
+    def maybeUpdateDialogueSummary(self) -> None:
+        """
+        检查并更新对话摘要。
+        返回值：更新后的近期摘要列表
+        """
+        # Avoid running multiple concurrent ingest jobs
+        if getattr(self, "_ingest_in_progress", False):
+            logger.debug("ingestDialogue already in progress, skipping")
+            return
+
+        def _done_callback(fut=None):
+            try:
+                # clear flag regardless of success
+                self._ingest_in_progress = False
+            except Exception:
+                logger.exception("Error clearing ingest in-progress flag")
+
+        # Wrapper that will call the blocking ingestDialogue and handle exceptions
+        def _run_blocking_ingest():
+            try:
+                self.ingestDialogue()
+            except Exception:
+                logger.exception("Background ingestDialogue failed")
+            finally:
+                # Ensure flag cleared
+                try:
+                    self._ingest_in_progress = False
+                except Exception:
+                    logger.exception("Error clearing ingest in-progress flag in thread")
+
+        # Try to schedule on the running asyncio loop without blocking it
+        try:
+            import asyncio
+
+            loop = asyncio.get_running_loop()
+            # mark as in progress
+            self._ingest_in_progress = True
+
+            async def _async_wrapper():
+                try:
+                    await loop.run_in_executor(None, self.ingestDialogue)
+                except Exception:
+                    logger.exception("Background ingestDialogue (async) failed")
+                finally:
+                    self._ingest_in_progress = False
+
+            # create task but don't await it
+            loop.create_task(_async_wrapper())
+            return
+        except RuntimeError:
+            # No running event loop in this thread; fallback to a daemon thread
+            import threading
+
+            self._ingest_in_progress = True
+            t = threading.Thread(target=_run_blocking_ingest, daemon=True)
+            t.start()
+            return
 
     def ingestDialogue(self) -> List[DialogueMessage]:
         self._refresh_buffers()

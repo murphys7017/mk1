@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import json
 from DataClass.TagType import TagType
 from tools.PromptBuilder import PromptBuilder
+# TODO: 添加更多字段，例如用户兴趣、对话主题等
 @dataclass
 class ChatState:
 	"""

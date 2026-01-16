@@ -17,6 +17,7 @@ class TagType(StrEnum):
     # ===== 身份 / 世界观 =====
     IDENTITY_CORE_TAG = "IDENTITY_CORE"   # 核心身份 + 长期自我（不可违背）
     WORLD_SETTING_TAG = "WORLD_SETTING"  # 世界设定 / 运行规则
+    WORLD_CORE_TAG = "WORLD_CORE"       # 世界核心信息
 
     # ===== 知识 =====
     KNOWLEDGE_TAG = "KNOWLEDGE"           # 显式知识 / 世界知识

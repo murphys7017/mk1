@@ -14,3 +14,4 @@ dialogue_history.txt
 PerceptionSystem/ltp/
 src/PerceptionSystem/ltp/
 chat_history.db
+logs/

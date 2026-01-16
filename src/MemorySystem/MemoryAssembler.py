@@ -45,6 +45,8 @@ class MemoryAssembler:
         memory_prompt = PromptBuilder(TagType.MEMORY_SYSTEM_TAG)
         memory_prompt.include(self.assembleShortMemory())
 
+        world_core = self.storage.world_core_storage.getWorldCore()
+        system_prompt.include(world_core)
         system_prompt.include(identity)
         system_prompt.include(memory_prompt)
         

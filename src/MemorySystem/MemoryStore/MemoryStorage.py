@@ -1,6 +1,7 @@
 
 from LLM.LLMManagement import LLMManagement
 from MemorySystem import MemoryPolicy
+from MemorySystem.MemoryStore.WordCoreStorage import WordCoreStorage
 from RawChatHistory.RawChatHistory import RawChatHistory
 from MemorySystem.MemoryStore.DialogueStorage import DialogueStorage
 from MemorySystem.MemoryStore.IdentitiyMemory import IdentitiyMemory
@@ -28,11 +29,15 @@ class MemoryStorage:
             raw_history, 
             llm_management, 
             policy)
+        self.world_core_storage = WordCoreStorage()
         
 
     def getIdentity(self) -> PromptBuilder:
         return self.identity_memory.getIdentity()
     
-    def maybeUpdateDialogueSummary(self) -> list[DialogueMessage]:
-        return self.dialogue_storage.ingestDialogue()
+    def maybeUpdateDialogueSummary(self) ->None:
+        return self.dialogue_storage.maybeUpdateDialogueSummary()
     
+
+    def getWorldCore(self) -> PromptBuilder:
+        return self.world_core_storage.getWorldCore()

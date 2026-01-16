@@ -14,8 +14,8 @@ class RawChatHistory:
         self.history_length = history_length
         self.dialogue_length = dialogue_length
 
-        self.historys: list[ChatMessage] = []
-        self.dialogues: list[DialogueMessage] = []
+        self.historys: list[ChatMessage] = self.sql_manager.getHistory(history_length)
+        self.dialogues: list[DialogueMessage] = self.sql_manager.getDialogues(dialogue_length)
 
     def getHistory(self,length = -1) -> list[ChatMessage]:
         if length == -1:

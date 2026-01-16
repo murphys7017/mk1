@@ -27,7 +27,9 @@ class MemorySystem:
             raw_history, self.llm_management,self.memory_policy)
         
         self.assembler = MemoryAssembler(self.storage, raw_history)
-        
+    def assembleWorldCore(self) -> PromptBuilder:
+        return self.storage.getWorldCore()
+
     def assembleIdentity(self) -> PromptBuilder:
         return self.assembler.assembleIdentity()
     def assembleShortMemory(self) -> PromptBuilder:

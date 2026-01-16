@@ -17,7 +17,6 @@ class PostTurnProcessor:
 
     def __init__(
         self,
-        memory_long,
         event_bus,
         memory_system: MemorySystem,
         chat_state_system: ChatStateSystem,
@@ -27,8 +26,6 @@ class PostTurnProcessor:
         self.event_bus = event_bus
         self.memory_system = memory_system
         self.chat_state_system = chat_state_system
-
-        self.memory_long = memory_long
         
         self.raw_history = raw_history
         self.post_handle_system = post_handle_system
@@ -62,11 +59,12 @@ class PostTurnProcessor:
             if self.chat_state_system:
                 self.chat_state_system.checkAndUpdateState(event.turn_id)
 
-            if self.memory_long:
-                handler = getattr(self.memory_long, "process_event", None)
-                if callable(handler):
-                    # allow sync handler
-                    handler(event)
+            # TODO:这个是AI自己瞎写的吗？
+            # if self.memory_long:
+            #     handler = getattr(self.memory_long, "process_event", None)
+            #     if callable(handler):
+            #         # allow sync handler
+            #         handler(event)
 
             if self.post_handle_system:
                 # schedule post_handle_system.handle asynchronously

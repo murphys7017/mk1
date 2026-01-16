@@ -1,6 +1,6 @@
 from typing import List
 
-from loguru import logger
+from logging_config import logger
 from ChatStateSystem.ChatStateSystem import ChatStateSystem
 from ContextAssembler.GlobalContextAssembler import GlobalContextAssembler
 from DataClass.ChatMessage import ChatMessage
@@ -42,7 +42,9 @@ class DefaultGlobalContextAssembler(GlobalContextAssembler):
         # 总体 system prompt 构建流程：
         system_prompt = PromptBuilder()
 
+
         # 记忆系统部分
+        world_core_prompt = self.memory_system.assembleWorldCore()
         memory_prompt = PromptBuilder(TagType.MEMORY_SYSTEM_TAG)
         identity_prompt = self.memory_system.assembleIdentity()
         short_memory_prompt = self.memory_system.assembleShortMemory()
@@ -54,7 +56,7 @@ class DefaultGlobalContextAssembler(GlobalContextAssembler):
 
         # 对话状态分析部分
         chat_state_prompt = self.chat_state_system.assemble()
-        system_prompt.include(chat_state_prompt) 
+        
 
         analyze_prompt = PromptBuilder(TagType.ANALYZE_TAG)
 
@@ -64,10 +66,10 @@ class DefaultGlobalContextAssembler(GlobalContextAssembler):
                 analyze_prompt.include(anl.analyze_result_to_prompt())
         
 
-
+        system_prompt.include(world_core_prompt)
         system_prompt.include(memory_prompt)
         system_prompt.include(analyze_prompt)
-
+        system_prompt.include(chat_state_prompt) 
 
         # 响应协议部分
         response_protocol = PromptBuilder(TagType.RESPONSE_PROTOCOL_TAG)

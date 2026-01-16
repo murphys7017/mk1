@@ -1,7 +1,7 @@
 from LLM.OllamaChat import OllamaChat
 from LLM.OllamaFormated import OllamaFormated
 from LLM.QwenFormated import QwenFormated
-from loguru import logger
+from logging_config import logger
 from DataClass.PromptTemplate import PromptTemplate
 from SystemPrompt import SystemPrompt
 from tools.tools import tools
@@ -14,13 +14,25 @@ class LLMManagement():
             "summarize_dialogue": "qwen3:4b",
             "judge_chat_state": "qwen3:1.7b",
             "motion_intent": "qwen3:1.7b",
-            "qw8": "qwen3:8b"
+            "qw8": "qwen3:8b",
+            "query_router": "qwen3:1.7b"
         }
         self.llm_map = {
             "qwen3:8b": OllamaChat(),
             "qwen3:1.7b": OllamaFormated(),
             "qwen3:4b": OllamaFormated(),
             "qwen-plus": QwenFormated()
+        }
+
+        self.model_config = {
+            "split_buffer_by_topic_continuation": {"model": "qwen3:1.7b", "is_formated": True},
+            "text_analysis": {"model": "qwen3:1.7b", "is_formated": True},
+            "judge_dialogue_summary": {"model": "qwen3:1.7b", "is_formated": True},
+            "summarize_dialogue": {"model": "qwen3:4b", "is_formated": True},
+            "judge_chat_state": {"model": "qwen3:1.7b", "is_formated": True},
+            "motion_intent": {"model": "qwen3:1.7b", "is_formated": True},
+            "qw8": {"model": "qwen3:8b", "is_formated": False},
+            "query_router": {"model": "qwen3:1.7b", "is_formated": True}
         }
         self.system_prompt = system_prompt
 
@@ -29,7 +41,7 @@ class LLMManagement():
         if missing:
             logger.warning(f"Missing required fields for prompt '{template.name}': {missing}")
             return ""
-        return tools.normalizeBlock(template.template.format(**kwargs))
+        return template.template.format(**kwargs)
     
     def chat(self, messages: list[dict], name: str, options: dict | None = None) -> str:
 
