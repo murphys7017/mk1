@@ -41,6 +41,10 @@ class DialogueMessageORM(Base):
 
     summary: Mapped[str] = mapped_column(Text)
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 新增用于检索的字段
+    entities: Mapped[Optional[List[str]]] = mapped_column(JSON, default=list)
+    keywords: Mapped[Optional[List[str]]] = mapped_column(JSON, default=list)
+    emotion_cues: Mapped[Optional[List[str]]] = mapped_column(JSON, default=list)
 
     dialogue_turns: Mapped[Optional[int]] = mapped_column(Integer)
 

@@ -87,6 +87,7 @@ class AnalyzeResult:
     frames: List[Frame] = field(default_factory=list)
 
     tokens: List[Tuple[str,str]] = field(default_factory=list)
+    
     # 过滤后的内容词/关键词（用于话题分段、检索、路由；不一定喂给主模型）
     keywords: List[str] = field(default_factory=list)
     # 轻量关系三元组（可选：可由 frames 或规则生成）

@@ -8,6 +8,8 @@ from RawChatHistory.RawChatHistory import RawChatHistory
 from DataClass.ChatMessage import ChatMessage
 from DataClass.DialogueMessage import DialogueMessage
 from MemorySystem.MemoryPolicy import MemoryPolicy
+from DataClass.AnalyzeResult import AnalyzeResult
+from collections import Counter
 
 
 class DialogueStorage:
@@ -253,6 +255,26 @@ class DialogueStorage:
         
 
         logger.info(f"生成摘要结果：{summary_res}")
+        # 聚合涉及消息的 AnalyzeResult，得到对话级的 entities/keywords/emotion_cues
+        msgs_for_agg = self.unsummarized_messages[: action + 1]
+        analyze_list = [m.analyze_result for m in msgs_for_agg if getattr(m, "analyze_result", None)]
+        analyze_list = [ar for ar in analyze_list if ar is not None]
+        if analyze_list:
+            merged = AnalyzeResult.merge_analyze_results(analyze_list)
+            # entities：直接使用合并后的 Entity 对象列表
+            entities = merged.entities if hasattr(merged, "entities") else []
+            # emotion_cues：直接使用 merged 的去重结果
+            emotion_cues = merged.emotion_cues or []
+            # keywords：按出现频率排序，取 top8（统计基于原始 analyze_list）
+            kw_items = []
+            for ar in analyze_list:
+                kw_items.extend([k.strip() for k in (ar.keywords or []) if k and k.strip()])
+            keywords = [k for k, _ in Counter(kw_items).most_common(8)]
+        else:
+            entities = []
+            keywords = []
+            emotion_cues = []
+
         if summary_res["action"] == "new":
             start_turn_id = self.unsummarized_messages[0].chat_turn_id
             current_dialogue = DialogueMessage(
@@ -261,6 +283,9 @@ class DialogueStorage:
                 dialogue_turns=action + 1,
                 is_completed=False,
                 summary=summary_res["summary_content"],
+                entities=entities,
+                keywords=keywords,
+                emotion_cues=emotion_cues,
             )
             self.raw_history.addDialogues(current_dialogue)
         elif summary_res["action"] == "update":
@@ -272,6 +297,10 @@ class DialogueStorage:
             dialogue.summary = summary_res["summary_content"]
             dialogue.end_turn_id = current_message.chat_turn_id
             dialogue.dialogue_turns = action + 1
+            # 更新聚合字段
+            dialogue.entities = entities
+            dialogue.keywords = keywords
+            dialogue.emotion_cues = emotion_cues
             self.raw_history.updateDialogue(dialogue)
         
 

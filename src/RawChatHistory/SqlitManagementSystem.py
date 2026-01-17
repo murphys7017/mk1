@@ -73,6 +73,9 @@ class SqlitManagementSystem:
         self.dialogue_store.update_summary(
             dialogue.dialogue_id,
             dialogue.summary,
+            entities=getattr(dialogue, "entities", None),
+            keywords=getattr(dialogue, "keywords", None),
+            emotion_cues=getattr(dialogue, "emotion_cues", None),
         )
 
         # completed

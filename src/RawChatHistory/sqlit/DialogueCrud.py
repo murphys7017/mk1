@@ -31,6 +31,9 @@ class DialogueCrud:
             summary=dm.summary,
             is_completed=dm.is_completed,
             dialogue_turns=dm.dialogue_turns,
+            entities=dm.entities or [],
+            keywords=dm.keywords or [],
+            emotion_cues=dm.emotion_cues or [],
         )
 
     @staticmethod
@@ -40,6 +43,9 @@ class DialogueCrud:
             end_turn_id=row.end_turn_id,
             summary=row.summary,
             is_completed=row.is_completed,
+            entities=row.entities or [],
+            keywords=row.keywords or [],
+            emotion_cues=row.emotion_cues or [],
             dialogue_id=row.dialogue_id,
             dialogue_turns=row.dialogue_turns,
         )
@@ -85,12 +91,27 @@ class DialogueCrud:
             session.commit()
             return (res.rowcount or 0) > 0 # type: ignore
 
-    def update_summary(self, dialogue_id: int, summary: str) -> bool:
+    def update_summary(
+        self,
+        dialogue_id: int,
+        summary: str,
+        entities: Optional[list] = None,
+        keywords: Optional[list] = None,
+        emotion_cues: Optional[list] = None,
+    ) -> bool:
         with self._session() as session:
+            values = {"summary": summary}
+            if entities is not None:
+                values["entities"] = entities
+            if keywords is not None:
+                values["keywords"] = keywords
+            if emotion_cues is not None:
+                values["emotion_cues"] = emotion_cues
+
             res = session.execute(
                 update(DialogueMessageORM)
                 .where(DialogueMessageORM.dialogue_id == dialogue_id)
-                .values(summary=summary)
+                .values(**values)
             )
             session.commit()
             return (res.rowcount or 0) > 0 # type: ignore
