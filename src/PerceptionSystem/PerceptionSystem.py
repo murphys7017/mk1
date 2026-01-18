@@ -83,24 +83,3 @@ class PerceptionSystem:
         message.analyze_result = merged_result
         
         return message
-
-
-    def build_query_schema(self) -> dict[str, Any]:
-        """
-        构建用于检索的查询 schema。
-        """
-        schema = {
-            "entities": {
-                "type": "list",
-                "description": "对话中涉及的实体列表",
-            },
-            "keywords": {
-                "type": "list",
-                "description": "对话的关键词列表",
-            },
-            "emotion_cues": {
-                "type": "list",
-                "description": "对话中的情感线索列表",
-            },
-        }
-        return schema

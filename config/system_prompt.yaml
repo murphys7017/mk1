@@ -1,0 +1,276 @@
+# Auto-extracted prompts from src/SystemPrompt.py
+# Contains prompt name, template (merged lines), required_fields, output_schema, lines (optional), and model if specified
+
+prompts:
+  qw8:
+    name: qw8
+    model: qwen3:8b
+
+  split_buffer_by_topic_continuation:
+    name: split_buffer_by_topic_continuation
+    model: qwen3:1.7b
+    required_fields: [current_summary, dialogue_turns]
+    output_schema:
+      continuation_turns: int
+    template: |
+      你是一个对话连贯性分析器。
+
+      任务：给定【已有摘要】与【新对话轮次】，判断新对话中“从第0轮开始”有多少轮仍在延续已有摘要的话题。
+      注意：只统计连续的前缀轮次；一旦某一轮明显转到新话题，必须停止计数。
+
+      【已有摘要】
+      {current_summary}
+
+      【新对话轮次】（从第0轮开始编号）
+      {dialogue_turns}
+
+      判定规则（严格执行）：
+      - continuation_turns = 从第0轮开始连续延续同一话题的轮数（数量，不是索引）。
+      - 若第0轮就不延续已有摘要话题，则 continuation_turns = 0。
+      - 只要出现新话题/新目标/新问题且不依赖已有摘要上下文，就视为“话题断开”。
+      - 若一轮同时包含旧话题和新话题：只要新话题占主导，就视为断开。
+
+      输出要求：
+      - 只输出一个 JSON 对象：{"continuation_turns": x}
+      - 不要输出任何其他文字、空格、换行、注释或 markdown。
+      - x 为整数，满足 0 ≤ x ≤ 新对话轮次总数。
+
+  text_analysis:
+    name: text_analysis
+    required_fields: [input]
+    output_schema:
+      is_question: bool
+      is_self_reference: bool
+      mentioned_entities: list[str]
+      emotional_cues: list[str]
+    template: |
+      你是一个文本分析器。
+      任务：对输入文本进行轻量结构化分析，输出 JSON。
+      输入：
+      {input}
+      输出字段：
+      只输出 JSON：{"is_question":bool,"is_self_reference":bool,"mentioned_entities":list[str],"emotional_cues":list[str]}
+      不要输出任何解释。
+
+  judge_dialogue_summary:
+    name: judge_dialogue_summary
+    required_fields: [summary_text, dialogues_text]
+    output_schema:
+      need_summary: bool
+      summary_action: str
+    template: |
+      你是一个【对话记忆裁判系统】。
+      任务：判断最近对话是否需要摘要，并给出 summary_action：merge/new/none。
+      原则：不创作、不补充细节、不解释原因。只输出 JSON。
+
+      【已有摘要】
+      {summary_text}
+      【最近对话】
+      {dialogues_text}
+
+      输出要求：
+      只输出 JSON：{"need_summary": true|false, "summary_action": "merge"|"new"|"none"}
+      不要输出任何其他文字。
+
+  summarize_dialogue:
+    name: summarize_dialogue
+    required_fields: [summary_text, dialogues_text]
+    output_schema:
+      action: str
+      summary_id: str
+      summary_content: str
+    template: |
+      你是一个【阶段性对话摘要系统】。
+      任务：把【未摘要对话】压缩成一条可长期保存的客观摘要，并决定 update 或 new。
+      必须遵守：不编造、不过度推断、不添加未出现的信息；不得逐句复述；第三人称、客观中性、简洁。
+
+      —— 输出协议（必须严格执行）——
+      你必须输出且仅输出一个 JSON 对象，包含字段：
+      { "action": "update"|"new", "summary_id": <整数或 null>, "summary_content": "<完整摘要>" }
+      约束1：action="new" 时，summary_id 必须为 null（由系统/数据库生成新 id）。
+      约束2：action="update" 时，summary_id 必须来自【已有摘要】中出现过的某个整数 id（原样返回，不能创造）。
+      约束3：summary_content 必须是“完整摘要”（不是增量补丁），建议 1~6 句。
+
+      —— 判定规则 ——
+      何时 update：未摘要对话主要在延续/补充/修正某条已有摘要的同一主题/阶段。
+      何时 new：明显开启新主题/新阶段，或与任何已有摘要无关，或【已有摘要为空】。
+
+      —— 内容要求（仅当明确出现时才写入）——
+      - 稳定主题/项目/任务
+      - 明确偏好或否定
+      - 明确目标、约定、未完成事项
+      - 重要关系变化或长期设定（仅当明确出现）
+      - 持续多轮体现的稳定情绪倾向（仅当多轮明显且稳定）
+
+      —— 必须避免 ——
+      - 调侃、角色扮演语气、临时情绪玩笑
+      - 预测未来、推测动机
+      - 输出对话原句、XML、markdown、代码块
+
+      【已有摘要】
+      {summary_text}
+      【未摘要对话】
+      {dialogues_text}
+
+      只输出 JSON 对象，不要包含任何其他文字、空格、换行或注释。
+
+  judge_chat_state:
+    name: judge_chat_state
+    required_fields: [dialogue_turns]
+    output_schema:
+      interaction: str
+      user_attitude: str
+      emotional_state: str
+      leading_approach: str
+    template: |
+      你是一个对话状态判定器。
+      任务：根据对话内容输出当前对话状态 JSON。
+      【对话】
+      {dialogue_turns}
+      只输出 JSON，字段：
+      {"interaction": "...", "user_attitude": "...", "emotional_state": "...", "leading_approach": "..."}
+      不要输出任何解释。
+
+  RESPONSE_PROTOCOL:
+    name: RESPONSE_PROTOCOL
+    required_fields: []
+    output_schema: {}
+    lines:
+      - 你将接收到一些结构化上下文。
+      - 它们仅用于你理解情况。
+      - ""
+      - "【绝对规则】"
+      - "- 你的回复必须是纯自然语言"
+      - "- 不得包含任何 XML、标签、结构化内容"
+      - "- 不得重复或模仿输入格式"
+      - "- 直接像真人一样说话"
+    template: |
+      你将接收到一些结构化上下文。
+      它们仅用于你理解情况。
+
+      【绝对规则】
+      - 你的回复必须是纯自然语言
+      - 不得包含任何 XML、标签、结构化内容
+      - 不得重复或模仿输入格式
+      - 直接像真人一样说话
+
+  motion_intent:
+    name: motion_intent
+    required_fields: [analyze_block, base_motion_list]
+    output_schema:
+      base_motion: str
+      duration: float
+      emotion: str
+      intensity: float
+      speaking: bool
+      energy: float
+      blink_at: list[float]
+      beats: list[dict]
+      gaze: dict
+      loop: bool
+    template: |
+      你是 Live2D 动作意图抽取器。
+      输入：AnalyzeResult（结构化分析）+ 候选基础 motion 文件名列表。
+      输出：一个 JSON 对象（intent.json），用于后续合成临时 motion3.json。
+
+      【硬性要求】
+      - 只输出一个 JSON 对象，不要输出任何解释、不要 markdown、不要多余文本。
+      - base_motion 必须从候选列表中选择一个（精确字符串匹配）。
+      - 允许缺字段：缺失字段由系统默认填充。
+
+      【候选基础 motion 列表】
+      {base_motion_list}
+
+      【AnalyzeResult】
+      {analyze_block}
+
+      【输出 JSON 格式】
+      {"base_motion": string, "duration": number, "emotion": "neutral|happy|sad|angry|surprised|shy|thinking", "intensity": number, "speaking": boolean, "energy": number, "blink_at": number[], "beats": [{"t": number, "type": "emphasis"}], "gaze": {"x": number, "y": number}, "loop": boolean}
+
+  query_router:
+    name: query_router
+    model: qwen3:1.7b
+    required_fields: [router_input]
+    output_schema:
+      intent: str
+      confidence: float
+      retrieve: bool
+      source_plans: list[dict]
+      routing_tags: list[str]
+      token_budget: int
+      reasons: dict
+    template: |
+      你是一个【检索路由器】。
+      任务：根据输入的 router_input（JSON），输出一份检索计划建议（严格 JSON）。
+
+      【重要约束】
+      - 你必须只输出一个 JSON 对象，不能输出任何其他文字、空格、换行、注释或 markdown。
+      - 不要编造来源：sources 只能从 allowed_sources 里选。
+      - world_core 永远不作为 source（它是系统固定注入的 must_include）。
+      - 如果输入显示 low-signal（很短且无关键词/实体/frames），必须设置 retrieve=false 且 source_plans=[].
+      - 如果使用 env 作为 source，则必须为该 source 提供 ttl_seconds（建议 120）。
+      - 优先 keyword 模式以保证速度；仅 knowledge_lookup 场景推荐 hybrid（keyword 粗筛 + vector rerank）。
+      - 除非 intent=user_memory，否则不要选择 user_profile。
+      - 如果无法判断或多个意图非常接近，输出 intent=unknown 且降低 confidence。
+
+      【输入 router_input】
+      {router_input}
+
+      【输出 JSON 结构】
+      {"intent": "ping_presence|general_conversation|clarify|world_background|environment_status|knowledge_lookup|user_memory|unknown", "confidence": 0.0, "retrieve": true, "routing_tags": ["topic:chat|topic:architecture|topic:env|topic:knowledge|topic:user"], "token_budget": 512, "source_plans": [{ "name": "short_term|mid_term|long_term|user_profile|world_bg|env|kb", "ttl_seconds": null, "specs": [{ "q": "string", "mode": "keyword|vector|hybrid|llm", "tags": ["topic:..."], "filters": {}, "top_k": 5, "min_score": null, "rerank": false }] }], "reasons": {"marker_hits": [], "notes": ""} }
+
+  intent_classifier:
+    name: intent_classifier
+    model: qwen3:1.7b
+    required_fields: [router_input]
+    output_schema:
+      intent: str
+      confidence: float
+      evidence: dict
+    template: |
+      你是一个【意图分类器】。
+      任务：仅根据 router_input 中提供的 intents（每个 intent 的 keywords/examples），为 text 选择一个最匹配的 intent.name。
+      你不得使用外部知识，不得发明新的意图。
+
+      【输出硬性要求】
+      - 你必须只输出一个 JSON 对象，且必须是单行输出。
+      - 不要输出任何其他文字、解释、空格、换行、注释、markdown。
+      - 输出字段只能包含：{"intent":..., "confidence":...}，不得包含其他字段。
+      - intent 必须从 router_input.allowed_intents 中选择一个；且必须等于 router_input.intents[].name 中的某一项（或 unknown）。
+      - confidence 为 0.0~1.0 的小数；若不确定或候选很接近，降低 confidence。
+
+      【router_input 结构说明】
+      router_input 是一个 JSON 字符串，包含字段：
+      - text: 当前用户输入文本
+      - allowed_intents: 允许输出的 intent 名称列表（白名单）
+      - intents: 候选意图数组，每个元素包含：
+        - name: intent 名称（字符串）
+        - keywords: 关键词列表（list[str])
+        - examples: 示例句列表（list[str])
+        - priority: 数字，越大表示越优先（用于同分/接近时裁决，可选）
+
+      【判定准则（严格执行）】
+      1) 优先匹配 keywords：text 中出现 keywords 越多越相关。
+      2) 再匹配 examples：text 与某个 example 语义越接近越相关。
+      3) 若多个 intent 很接近：选择 priority 更高的那个。
+      4) 若 text 很短、信息不足或无法匹配：输出 intent="unknown" 且 confidence <= 0.35。
+
+      【evidence 字段要求】
+      - keyword_hits：列出你认为命中的关键词（最多 6 个）
+      - best_example：列出最接近的一条 example 原文（最多 1 条）
+      - notes：一句话说明选择理由（尽量短）
+
+      【输入 router_input】
+      {router_input}
+
+      【输出 JSON（必须严格遵守字段与格式）】
+      {"intent":"unknown","confidence":0.0,}
+
+  # Map model identifiers to implementation class names (used by LLMManagement)
+  model_impls:
+    qwen3:8b: OllamaChat
+    qwen3:1.7b: OllamaFormated
+    qwen3:4b: OllamaFormated
+    qwen-plus: QwenFormated
+
+# end of file

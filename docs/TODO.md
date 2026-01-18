@@ -30,6 +30,18 @@ NOTE: `python-dotenv` 已补齐（或已移除），相关依赖与 `.env` 使�
 - [x] 引入 Prompt 构建系统（PromptBuilder + PromptNode），支持 include/extend/tag/container 的组合式拼装
 - [ ] 清理/确认 import 风格与包结构一致性（避免“直接运行 vs 安装为包”时导入差异）
 
+## 2026年1月19日
+
+- [x] 引入 QuerySystem（QuerySchema + property builders），并在主链路为 user 消息生成 query_schema
+- [x] 引入 PostTreatmentSystem（PostHandleSystem + Live2D Motion3Builder），并接入 PostTurnProcessor 异步调度
+- [x] RawChatHistory 增加近期 history/dialogue 内存缓存，减少频繁读库
+- [x] 对话摘要决策升级为 SummaryDecision（支持 merge/new），并尽量异步触发摘要更新
+- [ ] QuerySchema 驱动检索/工具调用闭环：从 query_schema.retrieve/mode/top_k 触发实际检索/筛选/注入上下文
+- [ ] QuerySchema 落库与回放：确定是否写入 SQLite（extra/json 列）或单独表，以便调试与评估
+- [ ] system_prompt.yaml 收敛为单一来源：统一 prompt 文本、required_fields、输出 schema，并实现安全字段替换（仅替换 required_fields）
+- [ ] LLMManagement 映射策略收敛：按配置映射 vs supportModel()/自动发现，选定并固化
+- [ ] PostTreatmentSystem 可靠性：handler 失败隔离/重试/幂等策略，补齐 POST_HANDLE_COMPLETED 的消费逻辑
+
 ~~~json
 {
   "strategy": {

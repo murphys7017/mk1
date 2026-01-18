@@ -7,7 +7,8 @@ import json
 class OllamaFormated(LLM):
     def generate(self, prompt: str, model: str, options: dict | None = None) -> dict:
         return self._call_ollama_api(prompt, model, options)
-    
+    def supportModel(self) -> list[str]:
+        return ["qwen3:1.7b", "qwen3:4b"]
     def _call_ollama_api(self, prompt: str, model: str, options: dict[str, Any] | None = None) -> dict:
         """
         通用Ollama本地模型API调用函数。

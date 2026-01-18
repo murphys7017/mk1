@@ -9,6 +9,7 @@ from DataClass.ChatMessage import ChatMessage
 from PerceptionSystem.PerceptionSystem import PerceptionSystem
 from MemorySystem.MemorySystem import MemorySystem
 from loguru import logger
+from QuerySystem.DefaultQuerySchemaBuilder import DefaultQuerySchemaBuilder
 from tools.tools import tools
 
 from PostTreatmentSystem.PostHandleSystem import PostHandleSystem
@@ -65,7 +66,10 @@ class Alice:
             history_window=self.history_window,
         )
 
-        
+        self.query_builder = DefaultQuerySchemaBuilder(
+            llm_management=self.llm_management,
+            template_path="config/template_input.yaml"
+        )
 
 
         self.memory_system = MemorySystem(
@@ -112,6 +116,9 @@ class Alice:
         # 处理响应
         user_input = await self.perception_system.analyze(user_inputs)
         logger.debug("User input after perception analysis: " + str(user_input))
+
+        user_input = self.query_builder.addMessage(user_input)
+        logger.debug("User input after query schema building: " + str(user_input.query_schema))
 
 
         # 添加到数据库

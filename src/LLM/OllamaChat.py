@@ -11,7 +11,8 @@ class OllamaChat(Chat):
             "temperature": 0.7,
             "top_p": 0.9
         }
-    
+    def supportModel(self) -> list[str]:
+        return ["qwen3:8b", "qwen3:1.7b", "qwen3:4b"]
     def respond(self, messages):
         return self.chat(messages, self.model, self.options)
 

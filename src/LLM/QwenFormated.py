@@ -8,7 +8,8 @@ from openai import OpenAI
 class QwenFormated(LLM):
     def generate(self, prompt: str, model: str, options: dict | None = None) -> dict:
         return self._call_openai_api(prompt, model, options)
-    
+    def supportModel(self) -> list[str]:
+        return ["qwen-plus"]
     def _call_openai_api(self, prompt: str, model: str, options: dict | None = None) -> dict:
         """
         通用OpenAI本地模型API调用函数。

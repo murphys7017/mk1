@@ -7,3 +7,6 @@ class LLM(ABC):
     @abstractmethod
     def failuredResponse(self) -> dict:
         pass
+    @abstractmethod
+    def supportModel(self) -> list[str]:
+        pass

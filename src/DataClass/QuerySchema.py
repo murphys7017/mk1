@@ -30,6 +30,15 @@ QueryMode = Literal[
     "llm",      # 用 LLM 做 rewrite 或直接路由（不建议当唯一检索）
 ]
 
+SourceName = Literal[
+    "short_term",
+    "mid_term",
+    "long_term",
+    "user_profile",
+    "world_bg",
+    "env",
+    "kb",
+]
 
 @dataclass(slots=True)
 class Filters:
@@ -41,46 +50,32 @@ class Filters:
 
 @dataclass
 class QuerySchema:
+    # 是否进行检索
+    retrieve: bool = False
 
-    """
-    一条“检索指令”：
-    - q: 查询文本（允许为空；例如 env 只拉最新快照）
-    - mode: keyword/vector/hybrid/llm
-    - tags: 主题过滤（routing tags）
-    - filters: 结构化过滤（时间范围、turn_id、recency 等）
-    - top_k: 本条指令的候选数量
-    - min_score: 向量检索阈值（可选）
-    - rerank: 是否进行二次排序（hybrid 常用）
-    """
+    # 信号密度
+    signal_density: SignalDensity = "low"
+
+    # 用户意图
+    intent: IntentName = "unknown"
+
     # 查询基于的文本 某条对话或者摘要
     query_text: str = ""
     # 查询的方式 关键词 向量 混合
     mode: QueryMode = "keyword"
     # 关键词列表
     keywords: List[str] = field(default_factory=list)
-
+    # 相关文本来源
+    sources : List[SourceName] = field(default_factory=list)
     # 结构化过滤条件
     filters: Dict[str, Any] = field(default_factory=dict)
+
+    # 约束与预算
     top_k: int = 5
-    min_score: Optional[float] = None
-    rerank: bool = False
+    ttl_seconds: Optional[int] = None          # env 必填
+    token_budget: int = 512
 
-
-    # 1) routing
-    intent: IntentName = "unknown"
-    signal_density: SignalDensity = "low"
-    retrieve: bool = False
-
-
-
-
-    # tags 分两类：routing_tags 用于检索过滤；debug_tags 仅用于观测
-    routing_tags: List[str] = field(default_factory=list)
+    # debug_tags 仅用于验证检索结果
     debug_tags: List[str] = field(default_factory=list)
 
-
-
-
-
-    reasons: Dict[str, Any] = field(default_factory=dict)
 

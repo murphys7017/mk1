@@ -1,0 +1,218 @@
+# ================================
+# template_input.yaml
+# 说明：
+# - 本文件用于“路由/检索/策略”相关的可配置内容。
+# - intent 名称必须与代码中的 IntentName Literal 对齐，否则应在启动时校验并拒绝加载。
+# - sources 也应在启动时做白名单校验（short_term/mid_term/long_term/user_profile/world_bg/env/kb）。
+# ================================
+
+intent_config_version: 1
+
+# 低信号硬闸门：命中则 signal_density=low 且 intent=ping_presence（或至少 retrieve=false）
+# 建议使用“完全匹配/去空白后匹配”，避免误杀长句。
+low_signal_patterns:
+  - "在吗"
+  - "在不在"
+  - "?"
+  - "？"
+  - "嗯"
+  - "哦"
+  - "好"
+  - "好的"
+  - "ok"
+  - "okay"
+  - "hello"
+  - "hi"
+  - "test"
+  - "测试"
+
+# 原型样例：用于 cosine（TF-IDF 或 embedding）做 intent 候选加分/路由
+# label 只是内部分类名（可与 intent 一一对应），IntentJudge 可通过映射表 label->intent 使用
+prototypes:
+  env:
+    - "现在cpu占用多少"
+    - "内存还剩多少"
+    - "磁盘空间够吗"
+    - "系统负载怎么样"
+    - "今天天气怎么样"
+    - "有没有新闻"
+  system:
+    - "这个系统架构怎么设计"
+    - "memory模块怎么实现"
+    - "QuerySchema怎么设计"
+    - "对话摘要是怎么生成的"
+    - "EventBus怎么用"
+  kb:
+    - "这个函数怎么用"
+    - "接口参数是什么"
+    - "readme里怎么写的"
+    - "有没有使用说明"
+    - "文档在哪里"
+  user_mem:
+    - "记住我"
+    - "我喜欢什么"
+    - "我不喜欢什么"
+    - "你还记得我吗"
+    - "我的偏好是什么"
+
+# intent 定义（配置驱动）：
+# - name: intent 名称（必须与代码 IntentName 对齐）
+# - enabled: 是否启用
+# - priority: 冲突裁决优先级（数值越大越优先）
+# - retrieve: 是否允许进入检索链路（建议 ping_presence=false）
+# - sources: 默认允许检索的数据源（仍会被 policy/SignalDensity 二次裁剪）
+# - limits: 推荐的预算/约束（全局上限仍由代码限制）
+# - examples/keywords: 用于 IntentJudge 的候选生成与加分
+intents:
+  - name: ping_presence
+    enabled: true
+    priority: 100
+    retrieve: false
+    sources: []
+    limits:
+      top_k: 0
+      token_budget: 0
+    examples:
+      - "在吗"
+      - "?"
+      - "嗯"
+      - "hello"
+    keywords: []
+
+  - name: general_conversation
+    enabled: true
+    priority: 10
+    retrieve: true
+    sources: ["short_term", "mid_term"]
+    limits:
+      top_k: 5
+      token_budget: 512
+    examples:
+      - "我们继续"
+      - "接着说"
+      - "我想聊聊"
+    keywords: []
+
+  - name: clarify
+    enabled: true
+    priority: 20
+    retrieve: true
+    sources: ["short_term", "mid_term"]
+    limits:
+      top_k: 4
+      token_budget: 512
+    examples:
+      - "什么意思"
+      - "你能解释一下吗"
+      - "我没懂"
+      - "再具体点"
+    keywords:
+      - "解释"
+      - "什么意思"
+      - "没懂"
+      - "具体"
+
+  - name: world_background
+    enabled: true
+    priority: 70
+    retrieve: true
+    sources: ["world_bg", "mid_term"]
+    limits:
+      top_k: 6
+      token_budget: 768
+    examples:
+      - "这个系统架构怎么设计"
+      - "模块之间怎么协作"
+      - "memory是怎么工作的"
+      - "QuerySchema是什么"
+    keywords:
+      - "架构"
+      - "流程"
+      - "模块"
+      - "设计"
+      - "system"
+      - "prompt"
+      - "memory"
+      - "sqlite"
+      - "schema"
+      - "queryplan"
+
+  - name: environment_status
+    enabled: true
+    priority: 80
+    retrieve: true
+    sources: ["env"]
+    limits:
+      ttl_seconds: 120
+      top_k: 3
+      token_budget: 256
+    examples:
+      - "现在cpu占用多少"
+      - "内存还剩多少"
+      - "磁盘空间够吗"
+      - "今天天气怎么样"
+      - "有没有新闻"
+    keywords:
+      - "cpu"
+      - "内存"
+      - "磁盘"
+      - "天气"
+      - "新闻"
+      - "负载"
+      - "占用"
+      - "温度"
+      - "进程"
+
+  - name: knowledge_lookup
+    enabled: true
+    priority: 60
+    retrieve: true
+    sources: ["kb"]
+    limits:
+      top_k: 8
+      token_budget: 768
+    examples:
+      - "这个函数怎么用"
+      - "接口参数是什么"
+      - "readme里怎么写的"
+      - "有没有文档"
+    keywords:
+      - "文档"
+      - "readme"
+      - "接口"
+      - "api"
+      - "参数"
+      - "用法"
+      - "说明"
+
+  - name: user_memory
+    enabled: true
+    priority: 50
+    retrieve: true
+    sources: ["user_profile", "mid_term", "long_term"]
+    limits:
+      top_k: 6
+      token_budget: 768
+    examples:
+      - "记住我"
+      - "我喜欢什么"
+      - "你还记得我吗"
+      - "我的偏好是什么"
+    keywords:
+      - "记住"
+      - "偏好"
+      - "喜欢"
+      - "不喜欢"
+      - "习惯"
+      - "目标"
+
+  - name: unknown
+    enabled: true
+    priority: 0
+    retrieve: true
+    sources: ["short_term"]
+    limits:
+      top_k: 3
+      token_budget: 384
+    examples: []
+    keywords: []

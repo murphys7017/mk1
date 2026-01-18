@@ -6,7 +6,7 @@ from loguru import logger
 from DataClass.AnalyzeResult import AnalyzeResult
 from LLM.LLMManagement import LLMManagement
 from DataClass.ChatMessage import ChatMessage
-from PerceptionSystem.Analyzeabstract import Analyze
+from PerceptionSystem.AnalyzeAbstract import Analyze
 from PostTreatmentSystem.HandlerAbstract import Handler
 from RawChatHistory.RawChatHistory import RawChatHistory
 from SystemPrompt import SystemPrompt

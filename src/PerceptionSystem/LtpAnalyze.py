@@ -4,7 +4,7 @@ from DataClass.AnalyzeResult import AnalyzeResult, Argument, Entity, Frame, Rela
 from ltp import LTP # type: ignore
 import torch
 from loguru import logger
-from PerceptionSystem.Analyzeabstract import Analyze
+from PerceptionSystem.AnalyzeAbstract import Analyze
 import re
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from functools import lru_cache

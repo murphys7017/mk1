@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import json
 from typing import Any
 from DataClass.AnalyzeResult import AnalyzeResult
+from DataClass.QuerySchema import QuerySchema
 from tools.tools import tools
 @dataclass
 class ChatMessage:
@@ -24,6 +25,7 @@ class ChatMessage:
 	image: Optional[Any] = None
 	video: Optional[Any] = None
 	analyze_result: Optional[AnalyzeResult] = None
+	query_schema: Optional[QuerySchema] = None
 
 
 	def getExtra(self):

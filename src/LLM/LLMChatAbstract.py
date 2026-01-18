@@ -9,3 +9,7 @@ class Chat(ABC):
     @abstractmethod
     def chat(self, messages: list[dict], model: str, options: dict | None = None) -> dict:
         pass
+    
+    @abstractmethod
+    def supportModel(self) -> list[str]:
+        pass
