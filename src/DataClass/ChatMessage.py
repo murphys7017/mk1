@@ -14,11 +14,13 @@ class ChatMessage:
 	timestamp: 消息时间戳（毫秒）
 	extra: 可选扩展字段
 	"""
-	
 	role: Literal["user", "assistant", "system"]
 	content: str
 	timestamp: int
 	timedate: str
+
+	sender_name: str = ""
+	sender_id: int = 0
 	extra: Optional[dict] = None
 	chat_turn_id: Optional[int] = None
 	voice: Optional[Any] = None
@@ -40,9 +42,19 @@ class ChatMessage:
 			"role": self.role,
 			"content": self.buildContent(),
 		}
+
+	@staticmethod
+	def _default_sender_for_role(role: str) -> tuple[str, int]:
+		if role == "assistant":
+			return ("Alice", -1)
+		if role == "user":
+			return ("aki", 1)
+		return ("system", 0)
 	def to_json(self) -> str:
 
 		return json.dumps({
+				"sender_name": self.sender_name,
+				"sender_id": self.sender_id,
 				"role": self.role,
 				"content": self.content,
 				"timestamp": self.timestamp,
@@ -52,8 +64,20 @@ class ChatMessage:
 			}, ensure_ascii=False)
 	@staticmethod
 	def from_dict(data: dict):
+		role = data["role"]
+		default_name, default_id = ChatMessage._default_sender_for_role(role)
+
+		sender_name = data.get("sender_name", None) or default_name
+		sender_id_raw = data.get("sender_id", None)
+		try:
+			sender_id = int(sender_id_raw) if sender_id_raw is not None else default_id
+		except Exception:
+			sender_id = default_id
+
 		return ChatMessage(
-			role=data["role"],
+			sender_name=sender_name,
+			sender_id=sender_id,
+			role=role,
 			content=data["content"],
 			timestamp=data["timestamp"],
 			timedate=data["timedate"],

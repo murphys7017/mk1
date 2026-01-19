@@ -28,7 +28,9 @@ _connected: Set[Any] = set()
 
 async def _client_handler(ws, alice):
     """Handle a single client connection: receive messages and send responses.
-    Expect client to send JSON objects like: {"type":"user_input","content": "..."}
+        Expect client to send JSON objects like:
+            {"type":"user_input","content":"...","sender_name":"aki","sender_id":1}
+        or  {"type":"user_input","content":"...","sender": {"name":"aki","id":1}}
     """
     logger.debug(f"WS client connected: {ws.remote_address}")
     _connected.add(ws)
@@ -44,8 +46,19 @@ async def _client_handler(ws, alice):
             msg_type = data.get("type")
             if msg_type == "user_input":
                 content = data.get("content", "")
+
+                sender = data.get("sender") or {}
+                sender_name = data.get("sender_name") or sender.get("name")
+                sender_id = data.get("sender_id")
+                if sender_id is None:
+                    sender_id = sender.get("id")
+
                 # Build a ChatMessage-like dict for Alice
-                user_inputs = {"text": content}
+                user_inputs = {
+                    "text": content,
+                    "sender_name": sender_name,
+                    "sender_id": sender_id,
+                }
                 try:
                     # call alice.respond asynchronously
                     resp = await alice.respond(user_inputs)

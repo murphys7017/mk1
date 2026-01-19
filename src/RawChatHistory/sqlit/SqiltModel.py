@@ -59,6 +59,9 @@ class ChatMessageORM(Base):
     # 对齐 dataclass: chat_turn_id
     chat_turn_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
+    sender_name: Mapped[str] = mapped_column(String(64), index=True, default="")
+    sender_id: Mapped[int] = mapped_column(Integer, index=True, default=0)
+
     role: Mapped[str] = mapped_column(String(16), index=True)  # user|assistant|system
     content: Mapped[str] = mapped_column(Text)
     timestamp: Mapped[int] = mapped_column(BigInteger, index=True)  # ms
@@ -79,6 +82,7 @@ class ChatMessageORM(Base):
 
 
 Index("ix_chat_messages_role_time", ChatMessageORM.role, ChatMessageORM.timestamp)
+Index("ix_chat_messages_sender_time", ChatMessageORM.sender_id, ChatMessageORM.timestamp)
 
 
 class AnalyzeResultORM(Base):

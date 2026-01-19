@@ -76,7 +76,11 @@ async def main():
         if user_input.lower() == "退出":
             print("再见！")
             break
-        response = await alice.respond({"text": user_input})
+        response = await alice.respond({
+			"text": user_input,
+			"sender_name": "aki",
+			"sender_id": 1,
+		})
         print("爱丽丝: " + response)
 
 

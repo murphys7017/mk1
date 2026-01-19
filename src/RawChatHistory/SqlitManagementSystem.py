@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import List, Optional
 
+from sqlalchemy import text
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
@@ -34,6 +35,57 @@ class SqlitManagementSystem:
 
         # 建表
         self.chat_store.create_tables()
+
+        # 轻量迁移：为旧 DB 补齐 chat_messages.sender_name / sender_id
+        self._migrate_chat_messages_sender_fields()
+
+    def _migrate_chat_messages_sender_fields(self) -> None:
+        with self.engine.begin() as conn:
+            try:
+                cols = {
+                    row["name"]
+                    for row in conn.execute(text("PRAGMA table_info(chat_messages)")).mappings().all()
+                }
+            except Exception:
+                return
+
+            if "sender_name" not in cols:
+                conn.execute(
+                    text(
+                        "ALTER TABLE chat_messages "
+                        "ADD COLUMN sender_name TEXT NOT NULL DEFAULT ''"
+                    )
+                )
+            if "sender_id" not in cols:
+                conn.execute(
+                    text(
+                        "ALTER TABLE chat_messages "
+                        "ADD COLUMN sender_id INTEGER NOT NULL DEFAULT 0"
+                    )
+                )
+
+            # 回填：按 role 补齐空值
+            conn.execute(
+                text(
+                    "UPDATE chat_messages "
+                    "SET sender_name='Alice', sender_id=-1 "
+                    "WHERE role='assistant' AND (sender_name='' OR sender_name IS NULL)"
+                )
+            )
+            conn.execute(
+                text(
+                    "UPDATE chat_messages "
+                    "SET sender_name='aki', sender_id=1 "
+                    "WHERE role='user' AND (sender_name='' OR sender_name IS NULL)"
+                )
+            )
+            conn.execute(
+                text(
+                    "UPDATE chat_messages "
+                    "SET sender_name='system', sender_id=0 "
+                    "WHERE role='system' AND (sender_name='' OR sender_name IS NULL)"
+                )
+            )
 
     # =====================
     # ChatMessage

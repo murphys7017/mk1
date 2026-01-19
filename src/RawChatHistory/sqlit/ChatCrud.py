@@ -52,6 +52,8 @@ class ChatCrud:
     @staticmethod
     def _chat_to_orm(msg: ChatMessage) -> ChatMessageORM:
         return ChatMessageORM(
+            sender_name=msg.sender_name,
+            sender_id=msg.sender_id,
             role=msg.role,
             content=msg.content,
             timestamp=msg.timestamp,
@@ -152,7 +154,14 @@ class ChatCrud:
         if role_value not in ('user', 'assistant', 'system'):
             raise ValueError(f"Invalid role value: {role_value}")
 
+        default_name, default_id = ChatMessage._default_sender_for_role(role_value)
+        sender_name = getattr(chat_row, "sender_name", None) or default_name
+        sender_id = getattr(chat_row, "sender_id", None)
+        sender_id = int(sender_id) if sender_id is not None else default_id
+
         return ChatMessage(
+            sender_name=sender_name,
+            sender_id=sender_id,
             role=role_value,  # type: ignore
             content=chat_row.content,
             timestamp=chat_row.timestamp,

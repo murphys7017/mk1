@@ -32,7 +32,17 @@ class PerceptionSystem:
         logger.debug(f"PerceptionSystem.analyze input_data: {input_data}")
         tasks = []
         loop = asyncio.get_running_loop()
+
+        sender_name = input_data.get("sender_name", None) or "aki"
+        sender_id_raw = input_data.get("sender_id", None)
+        try:
+            sender_id = int(sender_id_raw) if sender_id_raw is not None else 1
+        except Exception:
+            sender_id = 1
+
         message = ChatMessage(
+            sender_name=sender_name,
+            sender_id=sender_id,
             role="user",
             content="",
             timestamp=int(time.time() * 1000),

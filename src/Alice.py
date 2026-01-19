@@ -153,6 +153,8 @@ class Alice:
 
         # 添加助手响应到数据库
         assistant_response_id = self.raw_history.addMessage(ChatMessage(
+				sender_name="Alice",
+				sender_id=-1,
                 role="assistant", content=response,
                 timestamp=int(round(time.time() * 1000)),
                 timedate=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
