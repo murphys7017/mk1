@@ -75,10 +75,13 @@ class DefaultGlobalContextAssembler(GlobalContextAssembler):
         analyze_prompt = PromptBuilder(TagType.ANALYZE_TAG)
 
         for msg in self.raw_history.getHistoryByRole("user", self.analysis_window, sender_id=1):
+            b = PromptBuilder(f"User Message ID {msg.chat_turn_id}")
+            b.add(msg.buildContent())
+            b.add(f"TimeDate: {msg.timedate}")
             anl = msg.analyze_result
             if anl is not None:
-                analyze_prompt.include(anl.analyze_result_to_prompt())
-        
+                b.include(anl.analyze_result_to_prompt())
+            analyze_prompt.include(b)
 
         system_prompt.include(analyze_prompt)
 

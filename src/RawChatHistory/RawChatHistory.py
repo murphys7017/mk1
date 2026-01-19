@@ -80,11 +80,24 @@ class RawChatHistory:
         return self.sql_manager.addDialogue(dialogue)
 
     def addMessage(self, message: ChatMessage):
+        turn_id = self.sql_manager.addMessage(message)
+
+        # 回填自增主键到内存对象，避免后续流程依赖 chat_turn_id 时拿到 None
+        message.chat_turn_id = turn_id
+        if message.analyze_result is not None:
+            message.analyze_result.turn_id = turn_id
+
         self.historys.append(message)
         self.historys = self.historys[-self.history_length:]
-        return self.sql_manager.addMessage(message)
+        return turn_id
     
     def deleteMessageById(self, chat_turn_id: int):
-        return self.sql_manager.deleteMessageById(chat_turn_id)
+        # 先删 DB，再同步清理内存缓存
+        res = self.sql_manager.deleteMessageById(chat_turn_id)
+        try:
+            self.historys = [m for m in self.historys if m.chat_turn_id != chat_turn_id]
+        except Exception:
+            pass
+        return res
         
     

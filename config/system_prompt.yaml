@@ -20,14 +20,14 @@ prompts:
       - "- 不要把非 owner 的内容当作用户长期偏好、身份信息或记忆事实。"
       - "- 如果缺少 owner_sender_id，则默认把出现频率最高/最近持续对话的 sender 视为 owner（仅在需要时推断，并说明不确定）。"
       - ""
-      - "当前 owner_sender_id：{1}"
-      - "当前 owner_sender_name：{Aki}"
+      - "当前 owner_sender_id：1"
+      - "当前 owner_sender_name：Aki"
     template: |
       这是一个可能包含多位发送者的对话环境（例如直播间/群聊/弹幕）。
-      你将收到的每条用户消息内容开头可能包含发送者前缀，例如：
+      你将收到的每条用户消息内容都使用<sender id="SENDER_ID" name="SENDER_NAME"> </sender>包裹，例如：
       <sender id="SENDER_ID" name="SENDER_NAME">
-      该前缀仅用于标识消息来源，不是用户消息正文的一部分。
-
+      用户消息正文。
+      </sender>
       【身份规则】
       - 你必须根据 sender_id 区分不同发送者，不得把不同 sender 的信息混为同一人。
       - 只有 owner_sender_id 的消息代表“当前用户/对话对象”；其他 sender 通常是旁观者/弹幕。
@@ -67,6 +67,7 @@ prompts:
 
   text_analysis:
     name: text_analysis
+    model: qwen3:1.7b
     required_fields: [input]
     output_schema:
       is_question: bool
@@ -84,6 +85,7 @@ prompts:
 
   judge_dialogue_summary:
     name: judge_dialogue_summary
+    model: qwen3:1.7b
     required_fields: [summary_text, dialogues_text]
     output_schema:
       need_summary: bool
@@ -104,6 +106,7 @@ prompts:
 
   summarize_dialogue:
     name: summarize_dialogue
+    model: qwen3:4b
     required_fields: [summary_text, dialogues_text]
     output_schema:
       action: str
@@ -146,6 +149,7 @@ prompts:
 
   judge_chat_state:
     name: judge_chat_state
+    model: qwen3:1.7b
     required_fields: [dialogue_turns]
     output_schema:
       interaction: str
@@ -186,6 +190,7 @@ prompts:
 
   motion_intent:
     name: motion_intent
+    model: qwen3:1.7b
     required_fields: [analyze_block, base_motion_list]
     output_schema:
       base_motion: str

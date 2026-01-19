@@ -64,7 +64,28 @@ class LLMManagement():
         if missing:
             logger.warning(f"Missing required fields for prompt '{template.name}': {missing}")
             return ""
-        return template.template.format(**kwargs)
+        # Safely handle templates that contain literal JSON-like braces (e.g. {"is_question":bool})
+        # Escape all braces first, then un-escape placeholders we actually want to format.
+        raw = template.template
+        safe = raw.replace("{", "{{").replace("}", "}}")
+
+        # Fields we should keep as real placeholders: required_fields + provided kwargs keys
+        placeholder_keys = list(template.required_fields) + list(kwargs.keys())
+        # Deduplicate while preserving order
+        seen = set()
+        keys = [k for k in placeholder_keys if not (k in seen or seen.add(k))]
+
+        for key in keys:
+            if not isinstance(key, str) or key == "":
+                continue
+            # Replace the escaped placeholder {{key}} back to {key}
+            safe = safe.replace("{{" + key + "}}", "{" + key + "}")
+
+        try:
+            return safe.format(**kwargs)
+        except Exception as exc:
+            logger.exception(f"Failed to render prompt '{template.name}': {exc}")
+            return ""
     
     def chat(self, messages: list[dict], name: str, options: dict | None = None) -> str:
 
