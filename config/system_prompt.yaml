@@ -5,7 +5,37 @@ prompts:
   qw8:
     name: qw8
     model: qwen3:8b
+  IDENTITY_PROTOCOL:
+    name: IDENTITY_PROTOCOL
+    required_fields: [owner_sender_id, owner_sender_name]
+    output_schema: {}
+    lines:
+      - 这是一个可能包含多位发送者的对话环境（例如直播间/群聊/弹幕）。
+      - 你将收到的每条用户消息内容开头可能包含发送者前缀，例如：
+      - <sender id="SENDER_ID" name="SENDER_NAME">
+      - 该前缀仅用于标识消息来源，不是用户消息正文的一部分。
+      - 【身份规则】
+      - "- 你必须根据 sender_id 区分不同发送者，不得把不同 sender 的信息混为同一人。"
+      - "- 只有 owner_sender_id 的消息代表“当前用户/对话对象,他是你的创建人”；其他 sender 通常是旁观者/弹幕。"
+      - "- 不要把非 owner 的内容当作用户长期偏好、身份信息或记忆事实。"
+      - "- 如果缺少 owner_sender_id，则默认把出现频率最高/最近持续对话的 sender 视为 owner（仅在需要时推断，并说明不确定）。"
+      - ""
+      - "当前 owner_sender_id：{1}"
+      - "当前 owner_sender_name：{Aki}"
+    template: |
+      这是一个可能包含多位发送者的对话环境（例如直播间/群聊/弹幕）。
+      你将收到的每条用户消息内容开头可能包含发送者前缀，例如：
+      <sender id="SENDER_ID" name="SENDER_NAME">
+      该前缀仅用于标识消息来源，不是用户消息正文的一部分。
 
+      【身份规则】
+      - 你必须根据 sender_id 区分不同发送者，不得把不同 sender 的信息混为同一人。
+      - 只有 owner_sender_id 的消息代表“当前用户/对话对象”；其他 sender 通常是旁观者/弹幕。
+      - 不要把非 owner 的内容当作用户长期偏好、身份信息或记忆事实。
+      - 如果缺少 owner_sender_id，则默认把出现频率最高/最近持续对话的 sender 视为 owner（仅在需要时推断，并说明不确定）。
+      
+      当前 owner_sender_id：{owner_sender_id}
+      当前 owner_sender_name：{owner_sender_name}
   split_buffer_by_topic_continuation:
     name: split_buffer_by_topic_continuation
     model: qwen3:1.7b

@@ -407,6 +407,6 @@ class AnalyzeResult:
                             f"      - [{role}, {self._safe(a.text)}]"
                         )
 
-        builder.add(f"</{tag}>")
+        # builder.add(f"</{tag}>")
         return builder
 

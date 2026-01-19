@@ -102,6 +102,25 @@ class SqlitManagementSystem:
             with_analyze=True,
         )[::-1]
 
+    def getHistoryByRole(self, role: str, length: int) -> List[ChatMessage]:
+        """按 role 列出历史消息，返回按时间正序排列的列表（最早在前）。"""
+        return self.chat_store.list_messages(
+            limit=length,
+            order_desc=True,
+            with_analyze=True,
+            role=role,
+        )[::-1]
+
+    def getHistoryByRoleAndSender(self, role: str, sender_id: Optional[int], length: int) -> List[ChatMessage]:
+        """按 role + sender_id 列出历史消息，返回按时间正序排列的列表（最早在前）。"""
+        return self.chat_store.list_messages(
+            limit=length,
+            order_desc=True,
+            with_analyze=True,
+            role=role,
+            sender_id=sender_id,
+        )[::-1]
+
     def addMessage(self, message: ChatMessage) -> int:
         return self.chat_store.insert_message(message)
 

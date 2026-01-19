@@ -34,6 +34,8 @@ class ChatMessage:
 		return self.extra if self.extra else {}
 
 	def buildContent(self):
+		if self.role == "user":
+			return f'<sender id="{self.sender_id}" name="{self.sender_name}">{self.content}</sender>'
 		return self.content
 
 	

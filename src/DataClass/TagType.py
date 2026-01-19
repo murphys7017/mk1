@@ -19,6 +19,8 @@ class TagType(StrEnum):
     WORLD_SETTING_TAG = "WORLD_SETTING"  # 世界设定 / 运行规则
     WORLD_CORE_TAG = "WORLD_CORE"       # 世界核心信息
 
+    IDENTITY_PROTOCOL_TAG = "IDENTITY_PROTOCOL" # 身份协议（可变身份信息）
+
     # ===== 知识 =====
     KNOWLEDGE_TAG = "KNOWLEDGE"           # 显式知识 / 世界知识
 

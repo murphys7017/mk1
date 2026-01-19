@@ -43,40 +43,61 @@ class DefaultGlobalContextAssembler(GlobalContextAssembler):
         system_prompt = PromptBuilder()
 
 
-        # 记忆系统部分
+        
         world_core_prompt = self.memory_system.assembleWorldCore()
+        system_prompt.include(world_core_prompt)
+
+        # 记忆系统部分
         memory_prompt = PromptBuilder(TagType.MEMORY_SYSTEM_TAG)
         identity_prompt = self.memory_system.assembleIdentity()
         short_memory_prompt = self.memory_system.assembleShortMemory()
         # query info 
 
-
         memory_prompt.include(identity_prompt)
         memory_prompt.include(short_memory_prompt)
+        system_prompt.include(memory_prompt)
 
-        # 对话状态分析部分
-        chat_state_prompt = self.chat_state_system.assemble()
+
+
+
         
 
+        # 用户协议部分
+        user_protocol = PromptBuilder(TagType.IDENTITY_PROTOCOL_TAG)
+        iden_prompt = self.system_prompt.getPrompt(TagType.IDENTITY_PROTOCOL_TAG)
+        for line in iden_prompt.lines:
+            user_protocol.add(line)
+
+        system_prompt.include(user_protocol)
+
+        
+        # 分析结果部分
         analyze_prompt = PromptBuilder(TagType.ANALYZE_TAG)
 
-        for msg in self.raw_history.getHistory(self.analysis_window):
+        for msg in self.raw_history.getHistoryByRole("user", self.analysis_window, sender_id=1):
             anl = msg.analyze_result
             if anl is not None:
                 analyze_prompt.include(anl.analyze_result_to_prompt())
         
 
-        system_prompt.include(world_core_prompt)
-        system_prompt.include(memory_prompt)
         system_prompt.include(analyze_prompt)
+
+        # 对话状态分析部分
+        chat_state_prompt = self.chat_state_system.assemble()
         system_prompt.include(chat_state_prompt) 
+
+        
 
         # 响应协议部分
         response_protocol = PromptBuilder(TagType.RESPONSE_PROTOCOL_TAG)
         resp_prompt = self.system_prompt.getPrompt(TagType.RESPONSE_PROTOCOL_TAG)
         for line in resp_prompt.lines:
             response_protocol.add(line)
+
+        
         system_prompt.include(response_protocol)
+
+
         logger.debug("Final system prompt build completed.")
 
 

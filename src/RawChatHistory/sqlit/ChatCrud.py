@@ -83,7 +83,7 @@ class ChatCrud:
         # children: entities
         for e in ar.entities:
             row.entities.append(
-                EntityORM(eid=e.eid, text=e.text, typ=e.typ, span=e.span)
+                EntityORM(eid=getattr(e, "eid", None), text=e.text, typ=e.typ, span=e.span)
             )
 
         # children: frames + arguments
@@ -109,7 +109,7 @@ class ChatCrud:
     @staticmethod
     def _analyze_to_dataclass(ar_row: AnalyzeResultORM) -> AnalyzeResult:
         entities = [
-            Entity(eid=e.eid, text=e.text, typ=e.typ, span=e.span)
+            Entity(text=e.text, typ=e.typ, span=e.span)
             for e in (ar_row.entities or [])
         ]
 
@@ -133,7 +133,10 @@ class ChatCrud:
             schema_version=ar_row.schema_version,
             entities=entities,
             frames=frames,
-            tokens=ar_row.tokens or [],
+            tokens=[
+                (str(x[0]), str(x[1])) if isinstance(x, (list, tuple)) and len(x) >= 2 else (str(x), "")
+                for x in (ar_row.tokens or [])
+            ],
             keywords=ar_row.keywords or [],
             relations=relations,
             normalized_text=ar_row.normalized_text,
@@ -229,6 +232,7 @@ class ChatCrud:
         order_desc: bool = True,
         with_analyze: bool = True,
         role: Optional[str] = None,
+        sender_id: Optional[int] = None,
     ) -> List[ChatMessage]:
         """
         列表查询（可选按 role 过滤），返回 ChatMessage dataclass 列表
@@ -238,6 +242,9 @@ class ChatCrud:
 
             if role is not None:
                 stmt = stmt.where(ChatMessageORM.role == role)
+
+            if sender_id is not None:
+                stmt = stmt.where(ChatMessageORM.sender_id == int(sender_id))
 
             stmt = stmt.order_by(
                 ChatMessageORM.chat_turn_id.desc() if order_desc else ChatMessageORM.chat_turn_id.asc()

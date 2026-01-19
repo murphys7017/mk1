@@ -23,6 +23,36 @@ class RawChatHistory:
         if len(self.historys) >= length:
             return self.historys[-length:]
         return self.sql_manager.getHistory(length)
+    def getHistoryByRole(self,role:str, length = -1, sender_id: int | None = None) -> list[ChatMessage]:
+        """
+        获取指定角色的历史消息
+        Args:
+            role (str): 角色名称
+            length (int, optional): 获取的消息数量. Defaults to -1.
+        Returns:
+            list[ChatMessage]: 指定角色的历史消息列表
+        """
+        if length == -1:
+            length = self.history_length
+
+        # 首先从内存缓存中过滤出符合 role 的消息（保留时间顺序）
+        filtered = [m for m in self.historys if getattr(m, "role", None) == role]
+        if len(filtered) >= length:
+            return filtered[-length:]
+
+        # 缓存不足，则从 DB 拉取指定 role（和 sender_id，如有） 的更多消息
+        remaining = length - len(filtered)
+        if sender_id is None:
+            db_messages = self.sql_manager.getHistoryByRole(role, remaining)
+        else:
+            db_messages = self.sql_manager.getHistoryByRoleAndSender(role, sender_id, remaining)
+
+        # 合并并按时间排序（确保时间顺序正确）
+        combined = filtered + db_messages
+        combined.sort(key=lambda m: getattr(m, "timestamp", 0))
+
+        # 返回最新的 length 条（按时间正序）
+        return combined[-length:]
     
     def getHistoryLength(self) -> int:
         return self.sql_manager.getHistoryLength()
