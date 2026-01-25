@@ -1,15 +1,17 @@
 {
-    "Version": 0,
-    "Meta": {
-        "Duration": 3.4005115032196047,
-        "Fps": 60.0,
-        "Loop": true,
-        "AreBeziersRestricted": true,
-        "CurveCount": 192,
-        "TotalSegmentCount": 1139,
-        "TotalPointCount": 4185,
-        "UserDataCount": 0,
-        "TotalUserDataSize": 0
+	"Version": 3,
+	"Meta": {
+		"Duration": 3.4,
+		"Fps": 60.0,
+		"FadeInTime": 1.0,
+		"FadeOutTime": 1.0,
+		"Loop": true,
+		"AreBeziersRestricted": true,
+		"CurveCount": 192,
+		"TotalSegmentCount": 1139,
+		"TotalPointCount": 4185,
+		"UserDataCount": 0,
+		"TotalUserDataSize": 0
     },
     "Curves": [
         {

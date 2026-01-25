@@ -32,11 +32,13 @@ class OllamaFormated(LLM):
         try:
             response = requests.post(url, json=payload)
             response.raise_for_status()
-
             data = response.json()
             output = data.get("response") or data.get("message") or ""
-            logger.debug(f"Ollama API Raw Output: {output}")
+                
+           
+            logger.debug(f"Ollama API json() Output: {output}")
             
+        
             # 尝试提取 JSON
             start = output.find('{')
             end = output.rfind('}')

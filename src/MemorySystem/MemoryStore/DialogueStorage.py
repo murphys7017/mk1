@@ -320,7 +320,7 @@ class DialogueStorage:
             "temperature": 0.25,
             "top_p": 0.9,
             "repeat_penalty": 1.05,
-            "num_predict": 256
+            "num_predict": 1024*10,
         }
         data = self.llm_management.generate(
             prompt_name="summarize_dialogue",

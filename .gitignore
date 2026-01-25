@@ -15,3 +15,6 @@ PerceptionSystem/ltp/
 src/PerceptionSystem/ltp/
 chat_history.db
 logs/
+.vscode/
+src/PostTreatmentSystem/Live2d/Expressions/
+src/PostTreatmentSystem/Live2d/motions/

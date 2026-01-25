@@ -61,6 +61,14 @@ class Motion3Builder(Handler):
         
         self.ranges = dict(ranges or self.DEFAULT_RANGES)
         self.llm_management = llm_management  # assume global instance
+        
+        self.exp_map: Dict[str, str] = {
+            "Angry": json.loads(Path(r"src\PostTreatmentSystem\Live2d\Expressions\Angry.exp3.json").read_text(encoding="utf-8")),
+            "Blush": json.loads(Path(r"src\PostTreatmentSystem\Live2d\Expressions\Blush.exp3.json").read_text(encoding="utf-8")),
+            "Confused": json.loads(Path(r"src\PostTreatmentSystem\Live2d\Expressions\Confused.exp3.json").read_text(encoding="utf-8")),
+            "Embarrassed": json.loads(Path(r"src\PostTreatmentSystem\Live2d\Expressions\Embarrassed.exp3.json").read_text(encoding="utf-8")),
+        }
+        
         self.motions_map: Dict[str, Any] = {
             '舒适': json.loads(Path(r"src\PostTreatmentSystem\Live2d\motions\舒适.motion3.json").read_text(encoding="utf-8")),
             '自然': json.loads(Path(r"src\PostTreatmentSystem\Live2d\motions\自然.motion3.json").read_text(encoding="utf-8")),
@@ -419,7 +427,7 @@ class Motion3Builder(Handler):
             logger.error("intent must include 'base_motion_path'")
 
 
-        return self.generate_temp_motion(base_motion, intent)
+        return self.motions_map['微笑-眨眼-右']
     
     def handler(self, raw_history: RawChatHistory, res: dict) -> dict:
         temp_motion = self.build(res)
