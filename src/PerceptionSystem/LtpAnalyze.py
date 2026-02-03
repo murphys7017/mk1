@@ -9,6 +9,8 @@ import re
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from functools import lru_cache
 
+from logging_config import timeit_logger
+
 class LtpAnalyze(Analyze):
     def __init__(self,**kwargs):
         if kwargs.get('ltp', None):
@@ -49,7 +51,7 @@ class LtpAnalyze(Analyze):
         analysis_results = self.text_analysis(input_data)
         return analysis_results
     
-
+    @timeit_logger(name="LtpAnalyze.text_analysis", level="DEBUG")
     def text_analysis(self, text: str) -> AnalyzeResult:
         #  分词 cws、词性 pos、命名实体标注 ner、语义角色标注 srl、依存句法分析 dep、语义依存分析树 sdp、语义依存分析图 sdpg
         output = self.ltp.pipeline(

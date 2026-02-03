@@ -33,25 +33,22 @@ class OllamaFormated(LLM):
             response = requests.post(url, json=payload)
             response.raise_for_status()
             data = response.json()
-            output = data.get("response") or data.get("message") or ""
-                
-           
-            logger.debug(f"Ollama API json() Output: {output}")
-            
-        
+            output = data.get("response") or data.get("message") or "" 
             # 尝试提取 JSON
+            if '</think>' in output:
+                output = output.split('</think>')[-1]
+                output = output.strip()
             start = output.find('{')
             end = output.rfind('}')
             if start != -1 and end != -1:
                 output = output[start:end+1]
-                logger.debug(f"Ollama API Extracted JSON: {output}")
             try:
                 decision = json.loads(output)
                 return decision
             except Exception:
                 return {}
         except Exception as e:
-            print(f"[Ollama API Error] {e}")
+            logger.error(f"[Ollama API Error] {e}")
             return self.failuredResponse()
     def failuredResponse(self) -> dict:
         return {}

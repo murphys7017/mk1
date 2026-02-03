@@ -9,6 +9,7 @@ from DataClass.ChatMessage import ChatMessage
 from PerceptionSystem.PerceptionSystem import PerceptionSystem
 from MemorySystem.MemorySystem import MemorySystem
 from loguru import logger
+from src.logging_config import timeit_logger
 from QuerySystem.DefaultQuerySchemaBuilder import DefaultQuerySchemaBuilder
 from tools.tools import tools
 
@@ -59,12 +60,7 @@ class Alice:
         )
 
 
-        self.chat_state_system = DefaultChatStateSystem(
-            llm_management=self.llm_management,
-            system_prompt=self.system_prompt,
-            raw_history=self.raw_history,
-            history_window=self.history_window,
-        )
+
 
         self.query_builder = DefaultQuerySchemaBuilder(
             llm_management=self.llm_management,
@@ -76,7 +72,14 @@ class Alice:
             self.history_window, 
             self.dialogue_window, 
             self.min_raw_for_summary,
-            self.raw_history, self.llm_management
+            self.raw_history, 
+            self.llm_management
+        )
+        self.chat_state_system = DefaultChatStateSystem(
+            llm_management=self.llm_management,
+            system_prompt=self.system_prompt,
+            memory_system=self.memory_system,
+            history_window=self.history_window,
         )
         self.post_handle_system = PostHandleSystem(
             event_bus=self.event_bus,
@@ -89,7 +92,6 @@ class Alice:
             event_bus= self.event_bus,
             memory_system= self.memory_system, 
             chat_state_system= self.chat_state_system,
-            raw_history= self.raw_history,
             post_handle_system= self.post_handle_system
             )
         
@@ -99,7 +101,6 @@ class Alice:
             memory_system=self.memory_system,  # 后续设置
             chat_state_system=self.chat_state_system,  # 后续设置
             system_prompt=self.system_prompt,
-            raw_history=self.raw_history,  # 后续设置
             history_window=self.history_window,
             analysis_window=kwargs.get("analysis_window",3),
         )
@@ -108,6 +109,7 @@ class Alice:
 
     
     
+    @timeit_logger(name="Alice.respond", level="INFO")
     async def respond(self, user_inputs: dict[str, Any]) -> str:
         """
         生成对用户输入的响应
@@ -122,7 +124,7 @@ class Alice:
 
 
         # 添加到数据库
-        user_input_id = self.raw_history.addMessage(user_input)
+        user_input_id = self.memory_system.storage.add_history(user_input)
 
         logger.info(f"Added user input to history with ID: {user_input_id}")
 
@@ -145,14 +147,14 @@ class Alice:
         except Exception as e:
             logger.error(f"Error during LLM response: {e}")
             default_error_msg = "抱歉，生成响应时出错。请稍后再试。"
-            self.raw_history.deleteMessageById(user_input_id)
+            self.memory_system.storage.delete_history_by_id(user_input_id)
             return default_error_msg
         logger.debug(f"Alice response: {response}")
 
 
 
         # 添加助手响应到数据库
-        assistant_response_id = self.raw_history.addMessage(ChatMessage(
+        assistant_response_id = self.memory_system.storage.add_history(ChatMessage(
 				sender_name="Alice",
 				sender_id=-1,
                 role="assistant", content=response,

@@ -20,14 +20,12 @@ class PostTurnProcessor:
         event_bus,
         memory_system: MemorySystem,
         chat_state_system: ChatStateSystem,
-        raw_history: RawChatHistory,
         post_handle_system: PostHandleSystem
     ):
         self.event_bus = event_bus
         self.memory_system = memory_system
         self.chat_state_system = chat_state_system
         
-        self.raw_history = raw_history
         self.post_handle_system = post_handle_system
 
         self._last_processed_turn_id: int | None = None
@@ -103,9 +101,9 @@ class PostTurnProcessor:
             if isinstance(candidate, list) and all(isinstance(item, ChatMessage) for item in candidate):
                 return candidate
 
-        if self.raw_history:
+        if self.memory_system.storage:
             try:
-                return self.raw_history.getHistory(2)
+                return self.memory_system.storage.get_history(2)
             except Exception as exc:
                 logger.warning(f"Failed to read history for post turn: {exc}")
 

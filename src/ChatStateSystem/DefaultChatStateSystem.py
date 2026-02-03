@@ -1,7 +1,7 @@
 
 from LLM.LLMManagement import LLMManagement
 from DataClass.ChatState import ChatState
-from RawChatHistory.RawChatHistory import RawChatHistory
+from MemorySystem.MemorySystem import MemorySystem
 from SystemPrompt import SystemPrompt
 from tools.PromptBuilder import PromptBuilder
 from tools.tools import tools
@@ -17,14 +17,14 @@ class DefaultChatStateSystem(ChatStateSystem):
 
     def __init__(
         self,
-        raw_history: RawChatHistory,
+        memory_system: MemorySystem,
         llm_management: LLMManagement,
         system_prompt: SystemPrompt,
         # 最大长度
         history_window: int,
         
     ):
-        self.raw_history = raw_history
+        self.memory_system = memory_system
         self.llm_management = llm_management
         self.system_prompt = system_prompt
         self.history_window = history_window
@@ -42,7 +42,7 @@ class DefaultChatStateSystem(ChatStateSystem):
         return self.chat_state
     
     def activate_update_state(self):
-        chat_buffer = self.raw_history.getHistory(self.history_window)
+        chat_buffer = self.memory_system.storage.get_history(self.history_window)
         buffer_text = " "
    
         for msg in chat_buffer:

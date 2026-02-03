@@ -2,6 +2,10 @@ import os
 import sys
 import logging
 from loguru import logger
+import time
+import inspect
+from functools import wraps
+from contextlib import contextmanager
 
 # Centralized log configuration for the project
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
@@ -60,3 +64,57 @@ for name in ("asyncio", "urllib3", "chardet"):
     logging.getLogger(name).handlers = [InterceptHandler()]
 
 __all__ = ["logger"]
+
+
+def _log_timing(name: str, elapsed_ms: float, level: str = "INFO"):
+    try:
+        logger.log(level.upper(), f"[timing] {name} took {elapsed_ms:.2f} ms")
+    except Exception:
+        logger.info(f"[timing] {name} took {elapsed_ms:.2f} ms")
+
+
+def timeit_logger(name: str | None = None, level: str = "INFO"):
+    """装饰器：记录函数执行时间并通过 loguru 输出。
+
+    支持同步和异步函数。
+    """
+    def decorator(func):
+        is_coro = inspect.iscoroutinefunction(func)
+
+        @wraps(func)
+        async def async_wrapper(*args, **kwargs):
+            start = time.perf_counter()
+            try:
+                return await func(*args, **kwargs)
+            finally:
+                elapsed = (time.perf_counter() - start) * 1000
+                _log_timing(name or f"{func.__module__}.{func.__qualname__}", elapsed, level)
+
+        @wraps(func)
+        def sync_wrapper(*args, **kwargs):
+            start = time.perf_counter()
+            try:
+                return func(*args, **kwargs)
+            finally:
+                elapsed = (time.perf_counter() - start) * 1000
+                _log_timing(name or f"{func.__module__}.{func.__qualname__}", elapsed, level)
+
+        return async_wrapper if is_coro else sync_wrapper
+
+    return decorator
+
+
+@contextmanager
+def timing(name: str | None = None, level: str = "INFO"):
+    """上下文管理器：记录代码块执行时间。
+
+    用法：
+        with timing("task.name"):
+            do_work()
+    """
+    start = time.perf_counter()
+    try:
+        yield
+    finally:
+        elapsed = (time.perf_counter() - start) * 1000
+        _log_timing(name or "block", elapsed, level)

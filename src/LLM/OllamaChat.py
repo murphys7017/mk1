@@ -1,4 +1,5 @@
 from loguru import logger
+from logging_config import timeit_logger
 import requests
 from typing import Any
 
@@ -16,6 +17,7 @@ class OllamaChat(Chat):
     def respond(self, messages):
         return self.chat(messages, self.model, self.options)
 
+    @timeit_logger(name="OllamaChat.chat", level="DEBUG")
     def chat(self, messages: list[dict], model: str, options: dict | None = None) -> dict:
         return self._call_ollama_api(messages, model, options)
     
@@ -47,14 +49,10 @@ class OllamaChat(Chat):
             output = data.get("response") or data.get("message") or ""
             if isinstance(output, dict):
                 output = output.get("content", "")
-            logger.debug(f"Ollama API Raw Output: {output}")
-            # 去除思考内容
-
-            
-            
+            # 去除思考内
             return output
         except Exception as e:
-            print(f"[Ollama API Error] {e}")
+            logger.error(f"[Ollama API Error] {e}")
             return self.failuredResponse()
     def failuredResponse(self) -> dict:
         return {}

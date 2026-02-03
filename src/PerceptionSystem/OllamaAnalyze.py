@@ -7,6 +7,7 @@ from LLM.LLMManagement import LLMManagement
 from DataClass.ChatMessage import ChatMessage
 from PerceptionSystem.AnalyzeAbstract import Analyze
 from SystemPrompt import SystemPrompt
+from logging_config import timeit_logger
 
 
 class OllamaAnalyze(Analyze):
@@ -17,7 +18,7 @@ class OllamaAnalyze(Analyze):
         analysis_results = self.text_analysis(input_data)
         return analysis_results
     
-
+    @timeit_logger(name="OllamaAnalyze.text_analysis", level="DEBUG")
     def text_analysis(self, text: str) -> AnalyzeResult:
         """
         使用 1.7B 文本分析模型（Ollama）

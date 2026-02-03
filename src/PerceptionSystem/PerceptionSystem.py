@@ -8,6 +8,8 @@ from PerceptionSystem.OllamaAnalyze import OllamaAnalyze
 import asyncio
 from loguru import logger
 
+from logging_config import timeit_logger
+
 
 class PerceptionSystem:
     def __init__(self, llm_management: LLMManagement, **kwargs):
@@ -19,7 +21,7 @@ class PerceptionSystem:
                 LtpAnalyze(**kwargs)
                 ]
         }
-
+    @timeit_logger(name="PerceptionSystem.analyze", level="DEBUG")
     async def analyze(
         self,
         input_data: dict[str, Any],

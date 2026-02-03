@@ -10,9 +10,9 @@ from DataClass.DialogueMessage import DialogueMessage
 from MemorySystem.MemoryPolicy import MemoryPolicy
 from DataClass.AnalyzeResult import AnalyzeResult
 from collections import Counter
+from MemorySystem.MemoryStore.BaseStore import BaseStore
 
-
-class DialogueStorage:
+class DialogueStorage(BaseStore):
     """
     管理：
     - 已摘要消息
@@ -47,6 +47,29 @@ class DialogueStorage:
         self.summarized_messages: List[ChatMessage] = []
         self.unsummarized_messages: List[ChatMessage] = []
         self.recent_summaries: List[DialogueMessage] = []
+        # ---- DB / history wrappers (统一通过 MemoryStorage 访问 RawChatHistory) ----
+
+
+    
+    def get_history_by_role(self, role: str, length: int = -1, sender_id: int | None = None) -> list:
+        return []
+
+    def delete_history_by_id(self, chat_turn_id: int):
+        pass
+
+    
+    def get_history(self, length: int = -1):
+        return self.raw_history.getDialogues(length)
+
+    def get_history_by_id(self, id: int):
+        return self.raw_history.getDialogueById(id)
+
+    def add_history(self, history: DialogueMessage):
+        return self.raw_history.addDialogues(history)
+
+    def update_history(self, obj: DialogueMessage):
+        return self.raw_history.updateDialogue(obj)
+    
 
     # ---------- 基础入口 ----------
     def maybeUpdateDialogueSummary(self) -> None:

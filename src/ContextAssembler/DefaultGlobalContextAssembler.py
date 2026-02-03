@@ -1,6 +1,6 @@
 from typing import List
 
-from logging_config import logger
+from logging_config import logger, timeit_logger
 from ChatStateSystem.ChatStateSystem import ChatStateSystem
 from ContextAssembler.GlobalContextAssembler import GlobalContextAssembler
 from DataClass.ChatMessage import ChatMessage
@@ -8,10 +8,8 @@ from typing import Any
 
 from DataClass.TagType import TagType
 from MemorySystem.MemorySystem import MemorySystem
-from RawChatHistory.RawChatHistory import RawChatHistory
 from SystemPrompt import SystemPrompt
 from tools.PromptBuilder import PromptBuilder
-from tools.tools import tools
 
 
 class DefaultGlobalContextAssembler(GlobalContextAssembler):
@@ -21,7 +19,6 @@ class DefaultGlobalContextAssembler(GlobalContextAssembler):
         memory_system: MemorySystem,
         chat_state_system: ChatStateSystem,
         system_prompt: SystemPrompt,
-        raw_history: RawChatHistory,
         history_window: int,
         analysis_window: int = 3,
        
@@ -29,10 +26,10 @@ class DefaultGlobalContextAssembler(GlobalContextAssembler):
         self.memory_system = memory_system
         self.chat_state_system = chat_state_system
         self.history_window = history_window
-        self.raw_history = raw_history
         self.system_prompt = system_prompt
         self.analysis_window = analysis_window
 
+    @timeit_logger(name="DefaultGlobalContextAssembler.build_messages", level="DEBUG")
     def build_messages(
         self
     ) -> list[dict[str, Any]]:
@@ -74,7 +71,7 @@ class DefaultGlobalContextAssembler(GlobalContextAssembler):
         # 分析结果部分
         analyze_prompt = PromptBuilder(TagType.ANALYZE_TAG)
 
-        for msg in self.raw_history.getHistoryByRole("user", self.analysis_window, sender_id=1):
+        for msg in self.memory_system.storage.get_history_by_role("user", self.analysis_window, sender_id=1):
             b = PromptBuilder(f"User Message ID {msg.chat_turn_id}")
             b.add(msg.buildContent())
             b.add(f"TimeDate: {msg.timedate}")
@@ -112,7 +109,7 @@ class DefaultGlobalContextAssembler(GlobalContextAssembler):
         })
 
         # 原始对话放最后
-        buffer = self.raw_history.getHistory(self.history_window)
+        buffer = self.memory_system.storage.get_history(self.history_window)
         for msg in buffer:
             messages.append(msg.buildMessage())
 

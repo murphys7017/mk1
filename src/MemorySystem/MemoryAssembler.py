@@ -10,16 +10,14 @@ from DataClass.TagType import TagType
 class MemoryAssembler:
     def __init__(self,
                  storage: MemoryStorage,
-                 raw_history: RawChatHistory,
                  history_window: int = 20,
                  ):
         self.history_window = history_window
         self.storage = storage
-        self.raw_history = raw_history
 
 
     def _build_short_memory(self) -> PromptBuilder:
-        dialogues = self.raw_history.getDialogues(3)
+        dialogues = self.storage.dialogue_storage.get_history(3)
         b = PromptBuilder(TagType.MEMORY_SHORT_TAG)
         i= 1
         for msg in dialogues:

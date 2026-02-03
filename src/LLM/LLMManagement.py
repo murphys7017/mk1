@@ -1,7 +1,7 @@
 from LLM.OllamaChat import OllamaChat
 from LLM.OllamaFormated import OllamaFormated
 from LLM.QwenFormated import QwenFormated
-from logging_config import logger
+from logging_config import logger, timeit_logger
 from DataClass.PromptTemplate import PromptTemplate
 from SystemPrompt import SystemPrompt
 from tools.tools import tools
@@ -86,7 +86,7 @@ class LLMManagement():
         except Exception as exc:
             logger.exception(f"Failed to render prompt '{template.name}': {exc}")
             return ""
-    
+    @timeit_logger(name="LLMManagement.chat", level="DEBUG")
     def chat(self, messages: list[dict], name: str, options: dict | None = None) -> str:
 
         if name is None:
@@ -107,7 +107,7 @@ class LLMManagement():
             return llm.chat(messages, model_name, options)
         else:
             return llm.respond(messages)
-
+    @timeit_logger(name="LLMManagement.generate", level="DEBUG")
     def generate(
             self, 
             prompt_name: str,

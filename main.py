@@ -1,3 +1,10 @@
+from dotenv import load_dotenv
+# load environment variables before configuring logging
+load_dotenv()
+
+# ensure centralized logging is configured early (after env vars loaded)
+from src import logging_config  # noqa: F401
+
 from dataclasses import dataclass
 from functools import lru_cache
 import os
@@ -5,11 +12,7 @@ import asyncio
 from Transport.ws_server import start_ws_server, stop_ws_server
 from ltp import LTP
 from src.Alice import Alice
-from dotenv import load_dotenv
-# load environment variables before configuring logging
-load_dotenv()
-# ensure centralized logging is configured early (after env vars loaded)
-from src import logging_config  # noqa: F401
+
 api_key = os.environ.get("OPENAI_API_KEY") 
 ltp_path = os.environ.get("LTP_PATH", r"src\PerceptionSystem\ltp\base")
 stop_words_path = os.environ.get("STOPWORDS_PATH", r"src\PerceptionSystem\ltp\base\stopwords_full.txt")
